@@ -1,0 +1,5 @@
+https://github.com/Adlink-ROS/BT_ros2/tree/master/bt_xml -- esempio
+https://navigation.ros.org/configuration/packages/configuring-bt-xml.html -- documentazione
+https://www.behaviortree.dev/bt_basics/ -- docs fatti meglio
+http://docs.ros.org/en/kinetic/api/py_trees_ros/html/tutorials.html#module-py_trees_ros.tutorials.two -- tutorial con python
+https://github.com/berkeleyauv/behavior_tree
