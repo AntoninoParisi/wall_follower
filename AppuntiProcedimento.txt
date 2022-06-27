@@ -1,0 +1,28 @@
+  ___  ____ ___ _____ _____ _____ _____     _____ 
+ / _ \| __ )_ _| ____|_   _|_   _|_ _\ \   / /_ _|
+| | | |  _ \| ||  _|   | |   | |  | | \ \ / / | | 
+| |_| | |_) | || |___  | |   | |  | |  \ V /  | | 
+ \___/|____/___|_____| |_|   |_| |___|  \_/  |___|
+                                                  
+----------------------------------------------------
+
+- fare il package "HighLevelControl" in C++ 
+- installare groot per la gui dei BT 
+- costruire il tree con la gui o a mano (indiff.)
+
+
+
+
+ _   _ ___ _   _ _____ ____  
+| | | |_ _| \ | |_   _/ ___| 
+| |_| || ||  \| | | | \___ \ 
+|  _  || || |\  | | |  ___) |
+|_| |_|___|_| \_| |_| |____/ 
+                             
+-----------------------------------------------------
+
+
+-> non serve usare python con C++ !!!! (Basta pubblicare con il nodo specifico nel nodo di riferimento dell TB!, in teoria è /cmd_vel)
+-> per leggere gli scan della lidar sottoscrivere al nodo /scan e fare le stesse cose fatte in python ma in C++
+-> partire dalla repository https://github.com/berkeleyauv/behavior_tree
+-> forse meglio partire con una cosa ez e poi fare quella complessa verificandone il funzionamento
