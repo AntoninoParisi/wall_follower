@@ -2,7 +2,7 @@
 
 import time
 
-from example_interfaces.action import Fibonacci
+from nav2_msgs.action import FollowPath
 
 import rclpy
 from rclpy.action import ActionServer, CancelResponse, GoalResponse
@@ -12,12 +12,12 @@ from rclpy.node import Node
 class MinimalActionServer(Node):
 
     def __init__(self):
-        super().__init__('fibonacci_action_server')
+        super().__init__('wall_follower_action_server')
 
         self._action_server = ActionServer(
             self,
-            Fibonacci,
-            'fibonacci',
+            FollowPath,
+            'wall_follower',
             execute_callback=self.execute_callback,
             goal_callback=self.goal_callback,
             cancel_callback=self.cancel_callback)
@@ -42,7 +42,7 @@ class MinimalActionServer(Node):
         self.get_logger().info('Executing goal...')
 
         # Append the seeds for the Fibonacci sequence
-        feedback_msg = Fibonacci.Feedback()
+        feedback_msg = FollowPath.Feedback()
         feedback_msg.sequence = [0, 1]
 
         # Start executing the action
@@ -50,7 +50,7 @@ class MinimalActionServer(Node):
             if goal_handle.is_cancel_requested:
                 goal_handle.canceled()
                 self.get_logger().info('Goal canceled')
-                return Fibonacci.Result()
+                return FollowPath.Result()
 
             # Update Fibonacci sequence
             feedback_msg.sequence.append(feedback_msg.sequence[i] + feedback_msg.sequence[i - 1])
@@ -66,7 +66,7 @@ class MinimalActionServer(Node):
         goal_handle.succeed()
 
         # Populate result message
-        result = Fibonacci.Result()
+        result = FollowPath.Result()
         result.sequence = feedback_msg.sequence
 
         self.get_logger().info('Returning result: {0}'.format(result.sequence))

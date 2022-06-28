@@ -14,7 +14,7 @@ def generate_launch_description():
             # duplicate nodes!
             parameters=[
                 {'bt_file_path': os.path.join(get_package_share_directory('behavior_tree'), 'trees/wall_follower.xml')},
-                {'plugins': ['wall_follower']}
+                {'plugins': ['wall_follower_bt_node']}
             ]
         ),
     ])
