@@ -69,7 +69,7 @@ class MinimalActionServer(Node):
         result = FollowPath.Result()
         #result.sequence = feedback_msg.sequence
 
-        self.get_logger().info('Returning result: {0}'.format(result))
+        self.get_logger().info('Returning result: {0}'.format(goal_handle.request.path.poses[0].pose.position)) # messaggio che invio dal c++
 
         return result
 

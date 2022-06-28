@@ -26,3 +26,34 @@
 -> per leggere gli scan della lidar sottoscrivere al nodo /scan e fare le stesse cose fatte in python ma in C++
 -> partire dalla repository https://github.com/berkeleyauv/behavior_tree
 -> forse meglio partire con una cosa ez e poi fare quella complessa verificandone il funzionamento
+
+
+
+ ____ _____ _____ ____  ____  
+/ ___|_   _| ____|  _ \/ ___| 
+\___ \ | | |  _| | |_) \___ \ 
+ ___) || | | |___|  __/ ___) |
+|____/ |_| |_____|_|   |____/ 
+                              
+########################################
+
+
+
+
+
+- creare il file XXX.cpp , XXX_service.cpp con relativo servizio e azione
+- creare il file XXX.launch.py dentro launch
+- creare il server dentro scripts XXX_action_server.py 
+- il file ""XXX_action_server.py"" serve per la gestione delle azioni dei nodi
+- il file ""XXX.launch.py"" serve a comunicare il nodo e il BTree
+
+
+Remarks:
+  nel file server.py deve esserci la stessa action del C++
+  il file launch.py serve solo a fare il bind
+
+
+
+-> il wall follower per ora invia solo una path casuale
+
+- aggiornare il cmake dove ho commentato (ADD plugin, Install)

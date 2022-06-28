@@ -91,6 +91,8 @@ install (PROGRAMS
         DESTINATION lib/${PROJECT_NAME}
 )
 
+# wall follower
+
 install (PROGRAMS
         scripts/wall_follower_action_server.py
         DESTINATION lib/${PROJECT_NAME}
