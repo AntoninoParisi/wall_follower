@@ -43,33 +43,33 @@ class MinimalActionServer(Node):
 
         # Append the seeds for the Fibonacci sequence
         feedback_msg = FollowPath.Feedback()
-        feedback_msg.sequence = [0, 1]
+        #feedback_msg.sequence = [0, 1]
 
-        # Start executing the action
-        for i in range(1, goal_handle.request.order):
-            if goal_handle.is_cancel_requested:
-                goal_handle.canceled()
-                self.get_logger().info('Goal canceled')
-                return FollowPath.Result()
+        # # Start executing the action
+        # for i in range(1, goal_handle.request.order):
+        #     if goal_handle.is_cancel_requested:
+        #         goal_handle.canceled()
+        #         self.get_logger().info('Goal canceled')
+        #         return FollowPath.Result()
 
-            # Update Fibonacci sequence
-            feedback_msg.sequence.append(feedback_msg.sequence[i] + feedback_msg.sequence[i - 1])
+        #     # Update Fibonacci sequence
+        #     feedback_msg.sequence.append(feedback_msg.sequence[i] + feedback_msg.sequence[i - 1])
 
-            self.get_logger().info('Publishing feedback: {0}'.format(feedback_msg.sequence))
+        #     self.get_logger().info('Publishing feedback: {0}'.format(feedback_msg.sequence))
 
-            # Publish the feedback
-            goal_handle.publish_feedback(feedback_msg)
+        #     # Publish the feedback
+        #     goal_handle.publish_feedback(feedback_msg)
 
-            # Sleep for demonstration purposes
-            time.sleep(1)
+        #     # Sleep for demonstration purposes
+        #     time.sleep(1)
 
         goal_handle.succeed()
 
         # Populate result message
         result = FollowPath.Result()
-        result.sequence = feedback_msg.sequence
+        #result.sequence = feedback_msg.sequence
 
-        self.get_logger().info('Returning result: {0}'.format(result.sequence))
+        self.get_logger().info('Returning result: {0}'.format(result))
 
         return result
 
