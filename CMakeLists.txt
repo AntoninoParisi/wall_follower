@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(behavior_tree)
+project(ros2_btree)
 
 # Default to C99
 if(NOT CMAKE_C_STANDARD)
@@ -15,96 +15,37 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-include_directories(
-  include
-)
-
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(rclpy REQUIRED)
-find_package(behaviortree_cpp_v3 REQUIRED)
 find_package(rclcpp_action REQUIRED)
-find_package(geometry_msgs REQUIRED)
-find_package(std_msgs REQUIRED)
+find_package(behaviortree_cpp_v3 REQUIRED)
 find_package(nav_msgs REQUIRED)
-find_package(example_interfaces REQUIRED)
-find_package(nav2_msgs REQUIRED)
-
-
-set(dependencies
-  rclcpp
-  rclcpp_action
-  behaviortree_cpp_v3
-  geometry_msgs
-  nav_msgs
-  nav2_msgs
-  std_msgs
-  example_interfaces
-  )
-
-add_executable(bt_engine src/BtEngine.cpp)
-ament_target_dependencies(bt_engine ${dependencies})
-
-# fibonacci
-
-add_library(fibonacci_bt_node SHARED plugins/action/fibonacci.cpp)
-list(APPEND plugin_libs fibonacci_bt_node)
-
-add_library(fibonacci_service_bt_node SHARED plugins/action/fibonacci_service.cpp)
-list(APPEND plugin_libs fibonacci_service_bt_node)
-
-# wall follower
-
-add_library(wall_follower_bt_node SHARED plugins/action/wall_follower.cpp)
-list(APPEND plugin_libs wall_follower_bt_node)
-
-add_library(wall_follower_service_bt_node SHARED plugins/action/wall_follower_service.cpp)
-list(APPEND plugin_libs wall_follower_service_bt_node)
-
-foreach(bt_plugin ${plugin_libs})
-  ament_target_dependencies(${bt_plugin} ${dependencies})
-  target_compile_definitions(${bt_plugin} PRIVATE BT_PLUGIN_EXPORT)
-endforeach()
-
-install(TARGETS ${plugin_libs}
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-  )
-
-install(
-        DIRECTORY include/
-        DESTINATION include
-)
-
-install(TARGETS bt_engine
-        DESTINATION lib/${PROJECT_NAME}
-        )
-
-install(DIRECTORY launch trees
-        DESTINATION share/${PROJECT_NAME}
-        )
-
-install (PROGRAMS
-        scripts/fibonacci_action_server.py
-        DESTINATION lib/${PROJECT_NAME}
-)
-
-# wall follower
-
-install (PROGRAMS
-        scripts/wall_follower_action_server.py
-        DESTINATION lib/${PROJECT_NAME}
-)
+find_package(std_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
+  # the following line skips the linter which checks for copyrights
+  # uncomment the line when a copyright and license is not present in all source files
+  #set(ament_cmake_copyright_FOUND TRUE)
+  # the following line skips cpplint (only works in a git repo)
+  # uncomment the line when this package is not in a git repo
+  #set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-ament_export_include_directories(include)
-ament_export_libraries(${plugin_libs})
-ament_export_dependencies(${dependencies})
+
+add_executable(test_btree src/test.cpp)
+target_include_directories(test_btree PRIVATE include/ros2_btree)
+target_include_directories(test_btree PRIVATE include)
+
+ament_target_dependencies(test_btree geometry_msgs std_msgs nav_msgs behaviortree_cpp_v3 rclcpp_action rclcpp)
+
+install(TARGETS
+test_btree
+DESTINATION lib/${PROJECT_NAME}
+)
+
 
 ament_package()
