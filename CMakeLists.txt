@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(ros2_btree)
+project(progetto_ros2_btree)
 
 # Default to C99
 if(NOT CMAKE_C_STANDARD)
@@ -20,9 +20,8 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(behaviortree_cpp_v3 REQUIRED)
-find_package(nav_msgs REQUIRED)
-find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -35,17 +34,14 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
+add_executable(wall_follower_main src/wall_follower_main.cpp)
+target_include_directories(wall_follower_main PRIVATE include)
 
-add_executable(test_btree src/test.cpp)
-target_include_directories(test_btree PRIVATE include/ros2_btree)
-target_include_directories(test_btree PRIVATE include)
-
-ament_target_dependencies(test_btree geometry_msgs std_msgs nav_msgs behaviortree_cpp_v3 rclcpp_action rclcpp)
+ament_target_dependencies(wall_follower_main behaviortree_cpp_v3 rclcpp rclcpp_action geometry_msgs sensor_msgs std_msgs)
 
 install(TARGETS
-test_btree
+wall_follower_main
 DESTINATION lib/${PROJECT_NAME}
 )
-
 
 ament_package()
