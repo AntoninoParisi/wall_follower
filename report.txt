@@ -1,0 +1,25 @@
+
+30/6
+
+1) sistemato il cmake con ament_cmake invece che catkin, fa add_executable() del solo 'wall_follower_main.cpp' [ho commentato la parte degli include]
+	in oltre con ROS2 roscpp diventa rclcpp
+
+2) in launch/wall_follower.launch
+	ho modificato solo questa riga<node pkg="wall_follower" ..../>
+
+3) nel main
+	- convertito roscpp in rclcpp (https://docs.ros.org/en/foxy/The-ROS2-Project/Contributing/Migration-Guide.html)
+
+		ros::init(argc, argv);    	->   rclcpp::init(argc, argv);
+		ros::NodeHandle n		->   auto node = rclcpp::Node::make_shared("wall_follower");
+		ros::Duration(0.5).sleep(); 	->   rclcpp::sleep_for(0.5)
+		
+		
+
+1/7
+
+1) cambiati i nomi dei files .ccp/.h ora ce un main wall_follower_main.cpp (specifico il tree.xml, lo creo e ci bindo le actions) che chiama solo actions.h (dove sono implementate le actions)
+	prima c'era anche il test.h che insieme a dummy.h sono diventati actions.h	
+	
+2) nel main ho aggiunto il tick all'albero ogni 5ms per controllare che lo status sia ok	
+		
