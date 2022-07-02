@@ -63,7 +63,7 @@ public:
 
     // COSTRUTTORE  (Albero, var per le funz, publ/sub)
     BehaviorTreeFactory factory;
-    factory.registerSimpleAction("Find_Wall", bind(Wall_Follower::Find_Wall, &twist_msg, scan_msg));
+    factory.registerSimpleAction("Find_Wall", bind(Wall_Follower::Find_Wall, &twist_msg, &scan_msg));
     factory.registerSimpleAction("Align", bind(Wall_Follower::Align));
     factory.registerSimpleAction("Follow_Wall", bind(Wall_Follower::Follow_Wall));
     tree = factory.createTreeFromText(xml_tree);
@@ -115,21 +115,21 @@ private:
   }
 
   // ACTIONS
-  static NodeStatus Find_Wall(geometry_msgs::msg::Twist *vel, sensor_msgs::msg::LaserScan scan)
+  static NodeStatus Find_Wall(geometry_msgs::msg::Twist *vel, sensor_msgs::msg::LaserScan * scan)
   {
     cout << "[ Finding a wall sss]" << endl;
     // TODO:
 
     vel->linear.x += 1.0;
 
-    rclcpp::sleep_for(chrono::milliseconds(5000));
+    // rclcpp::sleep_for(chrono::milliseconds(5000));
 
-    cout << scan.range_min << endl;
+    cout << scan->range_min << endl;
 
-    // if(scan.range_min > 0)
-    return NodeStatus::SUCCESS;
-    // else
-    //   return NodeStatus::FAILURE;
+    if(scan->range_min > 0)
+      return NodeStatus::SUCCESS;
+    else
+      return NodeStatus::FAILURE;
   }
 
   static NodeStatus Align()
