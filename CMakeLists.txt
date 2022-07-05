@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(progetto_ros2_btree)
+project(wall_follower_btree)
 
 # Default to C99
 if(NOT CMAKE_C_STANDARD)

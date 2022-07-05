@@ -12,11 +12,6 @@
 #include "sensor_msgs/msg/laser_scan.hpp"
 
 #include <cmath>
-#include <functional>
-#include <future>
-#include <memory>
-#include <string>
-#include <sstream>
 
 using namespace std;
 using namespace BT;
@@ -84,14 +79,35 @@ private:
     this->lidar = _msg->ranges;
     this->lidar_len = lidar.size();
 
+    /*
     this->regions[0] = lidar[1];
     this->regions[1] = lidar[this->lidar_len/3];
     this->regions[2] = lidar[this->lidar_len*2/3];
+    */
 
-    // TODO: divide into regions properly
-    // regions[1] = min(lidar[ floor(lidar_len/3) ] , 1.0);
-    // regions[2] = min(lidar[ floor(lidar_len*2/3) ] , 1.0);
-    // min(vector<float>(lidar.begin() + 1, lidar.end()))
+    int right ,mid, left;
+
+    right = floor(this->lidar_len/3);
+    mid = floor(this->lidar_len/2);
+    left = floor(this->lidar_len/3 * 2); 
+
+    vector<float> reg0(lidar.begin() + 1,           lidar.end() - left - mid);                 //TODO: concat left to end
+    vector<float> reg1(lidar.begin() + 1 + right,   lidar.end() - mid);
+    vector<float> reg2(lidar.begin() + 1 + mid ,    lidar.end() );
+
+    this->regions[0] = *min_element(reg0.begin(), reg0.end());
+    this->regions[1] = *min_element(reg1.begin(), reg1.end());
+    this->regions[2] = *min_element(reg2.begin(), reg2.end());
+
+    /*
+    self.regions = {
+        'front': min(min(min(self.ranges[0 : self.len_ranges//12]), 10), min(min(self.ranges[self.len_ranges*11//12 : ]), 10)),
+        'left':  min(min(self.ranges[self.len_ranges//12 : self.len_ranges//2]), 10),
+        'right': min(min(self.ranges[self.len_ranges//2 : self.len_ranges*11//12]), 10),
+        }
+  */
+
+
   }
 
   void control_loop()
