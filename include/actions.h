@@ -14,6 +14,14 @@
 using namespace std;
 using namespace BT;
 
+int slice_dim, mid;
+float side;
+string action_name;
+
+//TODO: check if we can declare the following variables somehow outside the laser_callback
+//vector<float> reg0a, reg0b, reg0, reg1, reg2;
+
+
 class Wall_Follower : public rclcpp::Node
 {
 public:
@@ -24,6 +32,7 @@ public:
   int lidar_len;
   float regions[3];
   float dist_th;
+  float max_vel;
 
   Tree tree;
   string actual_node;
@@ -43,13 +52,16 @@ public:
     this->regions[0] = 1.0;
     this->regions[1] = 1.0;
     this->regions[2] = 1.0;
-    this->dist_th = 0.3;
+    this->dist_th = 0.4;
+    this->max_vel = 1.5;
     
     BehaviorTreeFactory factory;   
     factory.registerSimpleAction("Find_Wall", bind(Wall_Follower::Find_Wall, this));
     factory.registerSimpleAction("Side_Choice", bind(Wall_Follower::Side_Choice, this));
     factory.registerSimpleAction("Align", bind(Wall_Follower::Align, this));
     factory.registerSimpleAction("Follow_Wall", bind(Wall_Follower::Follow_Wall, this));
+    factory.registerSimpleCondition("Side_Empty", bind(Wall_Follower::Side_Empty, this));
+    factory.registerSimpleAction("Follow_Slim_Wall", bind(Wall_Follower::Follow_Slim_Wall, this));
     this->tree = factory.createTreeFromText(xml_tree);
 
     this->actual_node = "[ Inizializing ]";
@@ -71,15 +83,15 @@ private:
     this->lidar = _msg->ranges;
     this->lidar_len = lidar.size();
 
-    int slice_dim = floor(this->lidar_len/10);
-    int mid = floor(this->lidar_len/2);
+    slice_dim = floor(this->lidar_len/14);
+    mid = floor(this->lidar_len/2) - floor(this->lidar_len/6);
 
     vector<float> reg0a(lidar.begin() , lidar.begin() + slice_dim);  
     vector<float> reg0b(lidar.end() - slice_dim , lidar.end()); 
     vector<float> reg0 = reg0a;
     reg0.insert(reg0.end(), reg0b.begin(), reg0b.end());             
-    vector<float> reg1(lidar.begin() + slice_dim, lidar.end() - mid);
-    vector<float> reg2(lidar.begin() + mid , lidar.end() - slice_dim);
+    vector<float> reg1(lidar.begin() + slice_dim, lidar.begin() + mid);
+    vector<float> reg2(lidar.end() - mid, lidar.end() - slice_dim);
 
     this->regions[0] = min( *min_element(reg0.begin(), reg0.end()) , 10.0f);
     this->regions[1] = min( *min_element(reg1.begin(), reg1.end()) , 10.0f);
@@ -90,53 +102,58 @@ private:
   {  
     this->tree.tickRoot();
     publisher_->publish(twist_msg); 
-    
   }
   
   // ACTIONS
   
   static NodeStatus Find_Wall(Wall_Follower *wall_follower)
   {
-    string node_name = "[ Finding a wall ]";
-    if (wall_follower->actual_node != node_name){
-      wall_follower->actual_node = node_name;
-      cout << node_name << endl;     
+    // Go straight until a wall in front region is detected   (TODO: any reagions??)
+
+    action_name = "[ Finding a wall ]";
+    if (wall_follower->actual_node != action_name){
+      wall_follower->actual_node = action_name;
+      cout << action_name << endl;     
     }
 
     if(wall_follower->regions[0] > wall_follower->dist_th){
-      wall_follower->twist_msg.linear.x = 0.5;
+      wall_follower->twist_msg.linear.x = (wall_follower->regions[0] * wall_follower->regions[0] < wall_follower->max_vel) ? wall_follower->regions[0] * wall_follower->regions[0] : wall_follower->max_vel ;
+      wall_follower->twist_msg.angular.z = -0.2;
       return NodeStatus::FAILURE;
     }
     else{
       wall_follower->twist_msg.linear.x = 0.0;
+      wall_follower->twist_msg.angular.z = 0.0;
       return NodeStatus::SUCCESS;
       }    
   }
-  
-  
+    
   static NodeStatus Side_Choice(Wall_Follower *wall_follower)
   {
-    wall_follower->follow_right = (wall_follower->regions[2] < wall_follower->regions[1]) ? true : false;
+    // Set the side to follow according to the closest wall
+
+    wall_follower->follow_right = (wall_follower->regions[1] > wall_follower->regions[2]) ? true : false;
 
     if(wall_follower->follow_right)
-      cout << "[ Follow Right ]" << endl;
+      cout << "[ Follow right ]" << endl;       //THE WALL IS ON THE ROBOT RIGHT
     else  
-      cout << "[ Follow Left ]" << endl;
+      cout << "[ Follow left ]" << endl;        //THE WALL IS ON THE ROBOT LEFT
 
     return NodeStatus::SUCCESS;
   }
 
-
   static NodeStatus Align(Wall_Follower *wall_follower)
   {
-    string node_name = "[ Aligning to the wall ]";
-    if (wall_follower->actual_node != node_name){
-      wall_follower->actual_node = node_name;
-      cout << node_name << endl;     
+    // Turn, left or right according to the chosen side, until the front region is empty
+
+    action_name = "[ Aligning to the wall ]";
+    if (wall_follower->actual_node != action_name){
+      wall_follower->actual_node = action_name;
+      cout << action_name << endl;     
     }
 
-
     if(wall_follower->regions[0] < wall_follower->dist_th){
+      //TO DO: set a angular velocity according to the index of the minimal ray (es: more lateral = more vel)
       wall_follower->twist_msg.angular.z = (wall_follower->follow_right) ? 0.5 : -0.5;
       return NodeStatus::FAILURE;
     }
@@ -148,14 +165,18 @@ private:
 
   static NodeStatus Follow_Wall(Wall_Follower *wall_follower)
   {
-    string node_name = "[ Following the wall ]";
-    if (wall_follower->actual_node != node_name){
-      wall_follower->actual_node = node_name;
-      cout << node_name << endl;     
+    // Go straight until a wall in the front region is detected or the side to follow region is empty
+
+    action_name = "[ Following the wall ]";
+    if (wall_follower->actual_node != action_name){
+      wall_follower->actual_node = action_name;
+      cout << action_name << endl;     
     }
 
-    if(wall_follower->regions[0] > wall_follower->dist_th){
-      wall_follower->twist_msg.linear.x = 0.5;
+    side = (wall_follower->follow_right) ? wall_follower->regions[2] : wall_follower->regions[1];
+
+    if(wall_follower->regions[0] > wall_follower->dist_th && side < wall_follower->dist_th){
+      wall_follower->twist_msg.linear.x =  (wall_follower->regions[0] * wall_follower->regions[0] < wall_follower->max_vel) ? wall_follower->regions[0] * wall_follower->regions[0] : wall_follower->max_vel ;
       return NodeStatus::FAILURE;
     }
     else{
@@ -163,16 +184,54 @@ private:
       return NodeStatus::SUCCESS;
       }    
   }
+
+  static NodeStatus Follow_Slim_Wall(Wall_Follower *wall_follower)
+  {
+    // Go in circle until a wall appears in the side to follow region (and a wall in the front region is detected)
+
+    action_name = "[ Following a slim wall ]";
+    if (wall_follower->actual_node != action_name){
+      wall_follower->actual_node = action_name;
+      cout << action_name << endl;     
+    }
+
+    side = (wall_follower->follow_right) ? wall_follower->regions[1] : wall_follower->regions[2];
+
+    if(side > wall_follower->dist_th){
+      wall_follower->twist_msg.linear.x = 0.1;
+      wall_follower->twist_msg.angular.z = (wall_follower->follow_right) ? -0.5 : 0.5;
+      return NodeStatus::FAILURE;
+    }
+    else{
+      wall_follower->twist_msg.linear.x = 0.0;
+      wall_follower->twist_msg.angular.z = 0.0;
+      return NodeStatus::SUCCESS;
+      }    
+  }
+
+  // CONDITIONS
+
+  static NodeStatus Side_Empty(Wall_Follower *wall_follower)
+  {
+    // Check if the side to follow is empty (If it is the follow fall ends because a slim wall)
+
+    side = (wall_follower->follow_right) ? wall_follower->regions[1] : wall_follower->regions[2];
+
+    if(side > wall_follower->dist_th){
+      cout << "The side to follow is empty" << endl;
+      return NodeStatus::SUCCESS;
+    }
+    else{
+      return NodeStatus::FAILURE;
+      }    
+  }
 };
 
-
-
-
+#endif
 
 
 
 /*
-
 class Find_Wall : public AsyncActionNode 
   {
 
@@ -201,11 +260,4 @@ class Find_Wall : public AsyncActionNode
       return NodeStatus::FAILURE;  
     }
   };
-
 */
-
-#endif // SIMPLE_BT_NODES_H
-
-
-
-
