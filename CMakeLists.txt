@@ -37,7 +37,7 @@ endif()
 add_executable(wall_follower_main src/wall_follower_main.cpp)
 target_include_directories(wall_follower_main PRIVATE include)
 
-ament_target_dependencies(wall_follower_main behaviortree_cpp_v3 rclcpp rclcpp_action geometry_msgs sensor_msgs std_msgs)
+ament_target_dependencies(wall_follower_main behaviortree_cpp_v3 rclcpp rclcpp_action geometry_msgs sensor_msgs)
 
 install(TARGETS
 wall_follower_main

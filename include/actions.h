@@ -11,12 +11,8 @@
 #include "geometry_msgs/msg/twist.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
 
-#include <cmath>
-
 using namespace std;
 using namespace BT;
-
-//class Find_Wall;
 
 class Wall_Follower : public rclcpp::Node
 {
@@ -30,6 +26,7 @@ public:
   float dist_th;
 
   Tree tree;
+  string actual_node;
 
   geometry_msgs::msg::Twist twist_msg;
   sensor_msgs::msg::LaserScan scan_msg;
@@ -39,10 +36,8 @@ public:
 
   rclcpp::TimerBase::SharedPtr timer_;
 
-  // COSTRUTTORE 
   Wall_Follower(const char *xml_tree) : rclcpp::Node("Wall_Follower")
   {
-
     this->follow_right = true;
     this->lidar_len = 0;
     this->regions[0] = 1.0;
@@ -50,13 +45,14 @@ public:
     this->regions[2] = 1.0;
     this->dist_th = 0.3;
     
-    BehaviorTreeFactory factory;
-    //factory.registerNodeType<Find_Wall>("Find_Wall");     
+    BehaviorTreeFactory factory;   
     factory.registerSimpleAction("Find_Wall", bind(Wall_Follower::Find_Wall, this));
     factory.registerSimpleAction("Side_Choice", bind(Wall_Follower::Side_Choice, this));
     factory.registerSimpleAction("Align", bind(Wall_Follower::Align, this));
     factory.registerSimpleAction("Follow_Wall", bind(Wall_Follower::Follow_Wall, this));
     this->tree = factory.createTreeFromText(xml_tree);
+
+    this->actual_node = "[ Inizializing ]";
     
     this->publisher_ = this->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 1);
     this->subscription_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
@@ -66,48 +62,28 @@ public:
 
     this->twist_msg = geometry_msgs::msg::Twist();
 
-    this->timer_ = this->create_wall_timer(50ms, std::bind(&Wall_Follower::control_loop, this));   
-    
+    this->timer_ = this->create_wall_timer(50ms, std::bind(&Wall_Follower::control_loop, this));      
   }
 
-  // METODI
 private:
   void laser_callback(const sensor_msgs::msg::LaserScan::SharedPtr _msg)  //was "const sensor..."
-  {
-    //cout << "[ laser_callback ]" << endl;
-    
+  {    
     this->lidar = _msg->ranges;
     this->lidar_len = lidar.size();
 
-    /*
-    this->regions[0] = lidar[1];
-    this->regions[1] = lidar[this->lidar_len/3];
-    this->regions[2] = lidar[this->lidar_len*2/3];
-    */
+    int slice_dim = floor(this->lidar_len/10);
+    int mid = floor(this->lidar_len/2);
 
-    int right ,mid, left;
+    vector<float> reg0a(lidar.begin() , lidar.begin() + slice_dim);  
+    vector<float> reg0b(lidar.end() - slice_dim , lidar.end()); 
+    vector<float> reg0 = reg0a;
+    reg0.insert(reg0.end(), reg0b.begin(), reg0b.end());             
+    vector<float> reg1(lidar.begin() + slice_dim, lidar.end() - mid);
+    vector<float> reg2(lidar.begin() + mid , lidar.end() - slice_dim);
 
-    right = floor(this->lidar_len/3);
-    mid = floor(this->lidar_len/2);
-    left = floor(this->lidar_len/3 * 2); 
-
-    vector<float> reg0(lidar.begin() + 1,           lidar.end() - left - mid);                 //TODO: concat left to end
-    vector<float> reg1(lidar.begin() + 1 + right,   lidar.end() - mid);
-    vector<float> reg2(lidar.begin() + 1 + mid ,    lidar.end() );
-
-    this->regions[0] = *min_element(reg0.begin(), reg0.end());
-    this->regions[1] = *min_element(reg1.begin(), reg1.end());
-    this->regions[2] = *min_element(reg2.begin(), reg2.end());
-
-    /*
-    self.regions = {
-        'front': min(min(min(self.ranges[0 : self.len_ranges//12]), 10), min(min(self.ranges[self.len_ranges*11//12 : ]), 10)),
-        'left':  min(min(self.ranges[self.len_ranges//12 : self.len_ranges//2]), 10),
-        'right': min(min(self.ranges[self.len_ranges//2 : self.len_ranges*11//12]), 10),
-        }
-  */
-
-
+    this->regions[0] = min( *min_element(reg0.begin(), reg0.end()) , 10.0f);
+    this->regions[1] = min( *min_element(reg1.begin(), reg1.end()) , 10.0f);
+    this->regions[2] = min( *min_element(reg2.begin(), reg2.end()) , 10.0f);
   }
 
   void control_loop()
@@ -118,14 +94,17 @@ private:
   }
   
   // ACTIONS
- 
- 
+  
   static NodeStatus Find_Wall(Wall_Follower *wall_follower)
   {
-    cout << "[ Finding a wall ]" << endl;
-            
+    string node_name = "[ Finding a wall ]";
+    if (wall_follower->actual_node != node_name){
+      wall_follower->actual_node = node_name;
+      cout << node_name << endl;     
+    }
+
     if(wall_follower->regions[0] > wall_follower->dist_th){
-      wall_follower->twist_msg.linear.x = 1.0;
+      wall_follower->twist_msg.linear.x = 0.5;
       return NodeStatus::FAILURE;
     }
     else{
@@ -137,7 +116,6 @@ private:
   
   static NodeStatus Side_Choice(Wall_Follower *wall_follower)
   {
-
     wall_follower->follow_right = (wall_follower->regions[2] < wall_follower->regions[1]) ? true : false;
 
     if(wall_follower->follow_right)
@@ -151,10 +129,15 @@ private:
 
   static NodeStatus Align(Wall_Follower *wall_follower)
   {
-    cout << "[ Aligning to the wall]" << endl;
+    string node_name = "[ Aligning to the wall ]";
+    if (wall_follower->actual_node != node_name){
+      wall_follower->actual_node = node_name;
+      cout << node_name << endl;     
+    }
+
 
     if(wall_follower->regions[0] < wall_follower->dist_th){
-      wall_follower->twist_msg.angular.z = (wall_follower->follow_right) ? -1.0 : 1.0;
+      wall_follower->twist_msg.angular.z = (wall_follower->follow_right) ? 0.5 : -0.5;
       return NodeStatus::FAILURE;
     }
     else{
@@ -165,10 +148,14 @@ private:
 
   static NodeStatus Follow_Wall(Wall_Follower *wall_follower)
   {
-    cout << "[ Following the wall ]" << endl;
+    string node_name = "[ Following the wall ]";
+    if (wall_follower->actual_node != node_name){
+      wall_follower->actual_node = node_name;
+      cout << node_name << endl;     
+    }
 
     if(wall_follower->regions[0] > wall_follower->dist_th){
-      wall_follower->twist_msg.linear.x = 1.0;
+      wall_follower->twist_msg.linear.x = 0.5;
       return NodeStatus::FAILURE;
     }
     else{
