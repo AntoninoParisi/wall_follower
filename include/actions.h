@@ -16,6 +16,7 @@ using namespace BT;
 
 int slice_dim, mid;
 float side;
+float slim_side;
 string action_name;
 
 // TODO: check if we can declare the following variables somehow outside the laser_callback
@@ -32,6 +33,9 @@ public:
   float regions[3];
   float dist_th;
   float max_vel;
+
+  float slimRays[2]; // rays of left and right  
+
 
   bool lastWasFollowWall;
 
@@ -54,7 +58,13 @@ public:
     this->regions[1] = 1.0;
     this->regions[2] = 1.0;
     this->dist_th = 0.4;
-    this->max_vel = 1.5;
+    this->max_vel = 0.1;
+
+    this->slimRays[0] = 1.0;
+    this->slimRays[1] = 1.0;
+
+    // devo prendermi esattamente i raggi a dx e sx che corrispondono a -180+-2 e 0+-2
+    // se uno di questi due lati non rispetta la tresh allora sono di fronte a uno slim wall
 
     BehaviorTreeFactory factory;
     factory.registerSimpleAction("Find_Wall", bind(Wall_Follower::Find_Wall, this));
@@ -99,6 +109,13 @@ private:
     this->regions[0] = min(*min_element(reg0.begin(), reg0.end()), 10.0f);
     this->regions[1] = min(*min_element(reg1.begin(), reg1.end()), 10.0f);
     this->regions[2] = min(*min_element(reg2.begin(), reg2.end()), 10.0f);
+
+
+
+
+    this->slimRays[0] = max(this->lidar[270], max(this->lidar[265],this->lidar[275]));
+    this->slimRays[1] = max(this->lidar[45], max(this->lidar[50],max(this->lidar[40],this->lidar[42])));
+
   }
 
   void control_loop()
@@ -187,10 +204,20 @@ private:
     }
 
     side = (wall_follower->follow_right) ? wall_follower->regions[2] : wall_follower->regions[1];
+    slim_side = (wall_follower->follow_right) ? wall_follower->slimRays[0] : wall_follower->slimRays[1];
+
+    if(wall_follower->regions[0] > wall_follower->dist_th && slim_side > wall_follower->dist_th)
+    {
+      wall_follower->twist_msg.linear.x = 0.0;
+      wall_follower->twist_msg.angular.z = 0.0;
+      return NodeStatus::SUCCESS;
+    }
+    
 
     if (wall_follower->regions[0] > wall_follower->dist_th && side < wall_follower->dist_th)
     {
       wall_follower->twist_msg.linear.x = (wall_follower->regions[0] * wall_follower->regions[0] < wall_follower->max_vel) ? wall_follower->regions[0] * wall_follower->regions[0] : wall_follower->max_vel;
+      cout << "regions " << wall_follower->slimRays[0] << " | " << wall_follower->slimRays[1] << endl;
       return NodeStatus::FAILURE;
     }
     else
@@ -259,17 +286,21 @@ private:
 
     side = (wall_follower->follow_right) ? wall_follower->regions[2] : wall_follower->regions[1];
 
+    cout << " is slim ?????  : " << side << " | "<<wall_follower->dist_th<< " | "<<  wall_follower->regions[0]<< " | "<<  (wall_follower->regions[0] > 0.35 && side > 0.2) << endl;
 
-
-    if (wall_follower->regions[0] > wall_follower->dist_th && side > wall_follower->dist_th)
+    if (wall_follower->regions[0] > 0.35 && side > 0.2)
     {
-      wall_follower->twist_msg.angular.z = 0.1;
+      cout << "ok slim" << endl;
+      wall_follower->twist_msg.angular.z = (wall_follower->follow_right) ? -0.5 : 0.5;
+      wall_follower->twist_msg.linear.x = 0.0;
+
       return NodeStatus::SUCCESS;
     }
     else
     {
 
       wall_follower->twist_msg.linear.x = 0.1;
+      wall_follower->twist_msg.angular.z = 0.0;
 
       if(wall_follower->lastWasFollowWall){ // is slim wall only if before was a follow wall action, and now there is no wall to follow neither in front nor side region
         wall_follower->lastWasFollowWall = false;
