@@ -21,41 +21,43 @@ const char *xml_tree = R"(
                         <root main_tree_to_execute="MainTree">
                             <BehaviorTree ID="MainTree">
                               <Sequence name="MainTree_safe_seq">
-                                <Repeat num_cycles="1000">
-                                  <Parallel success_threshold="2">
-                                    <SubTree ID="Wall_follower"/>                                                                            	
-                                    <SubTree ID="Rewind_Handler"/> 
-                                  </Parallel> 
-                                </Repeat>
+                                <Parallel success_threshold="1">
+                                  <SubTree ID="Wall_follower"/>                                                                            	
+                                  <SubTree ID="Rewind_Handler"/> 
+                                </Parallel> 
                               </Sequence>   
                             </BehaviorTree>
 
                             <BehaviorTree ID="Wall_follower">
-                              <Sequence name="Wall_follower_seq">
-                                <SequenceStar name="Wall_follower_basic_seq">	
-                                  <Find_Wall name="Find wall"/>	
-                                  <Side_Choice name="Side choice"/>                              
-                                  <Align name="Align"/>
-                                  <Follow_Wall name="Follow a wall"/> 
-                                </SequenceStar>
-                                <SubTree ID="Corner_Handler"/>                                
-                              </Sequence>
+                              <Repeat num_cycles="1000">
+                                <Sequence name="Wall_follower_seq">
+                                  <Sequence name="Wall_follower_basic_seq">	
+                                    <Find_Wall name="Find wall"/>	
+                                    <Side_Choice name="Side choice"/>                              
+                                    <Align name="Align"/>
+                                    <Follow_Wall name="Follow a wall"/> 
+                                  </Sequence>
+                                  <SubTree ID="Corner_Handler"/>                              
+                                </Sequence>
+                              </Repeat>  
                             </BehaviorTree> 
 
                             <BehaviorTree ID="Corner_Handler">
-                              <SequenceStar name="Corner_Handler_Seq">
-                                <Side_Empty name="Is the side empty?"/>
-                                <Follow_Corner name="Follow a corner"/> 
-                              </SequenceStar>
+                              <ForceSuccess>
+                                <Sequence name="Corner_Handler_Seq">
+                                  <Side_Empty name="Is the side empty?"/>
+                                  <Follow_Corner name="Follow a corner"/> 
+                                </Sequence>
+                              </ForceSuccess>  
                             </BehaviorTree> 
 
                             <BehaviorTree ID="Rewind_Handler">
-                              <RetryUntilSuccessful num_attempts="99999"> 
-                                <SequenceStar name="Rewind_Handler_Seq">
-                                  <Key_Pressed name="Is a key pressed?"/>
+                              <Repeat num_cycles="1000">
+                                <Sequence name="Rewind_Handler_Seq">
+                                  <Wait_Key name="Wait since a key is pressed"/>
                                   <Rewind name="Rewind"/>
-                                </SequenceStar>
-                              </RetryUntilSuccessful>  
+                                </Sequence>
+                              </Repeat>  
                             </BehaviorTree>
 
                         </root>

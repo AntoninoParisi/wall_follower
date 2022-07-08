@@ -232,6 +232,48 @@ public:
   }
 };
 
+class Wait_Key : public AsyncActionNode
+{
+public:
+  Wait_Key(const string &name) : AsyncActionNode(name, {}) {}
+
+  bool inputAvailable()  
+  { 
+    //FROM: https://web.archive.org/web/20170407122137/http://cc.byexamples.com/2007/04/08/non-blocking-user-input-in-loop-without-ncurses/
+    struct timeval tv;
+    fd_set fds;
+    tv.tv_sec = 0;
+    tv.tv_usec = 0;
+    FD_ZERO(&fds);
+    FD_SET(STDIN_FILENO, &fds);
+    select(STDIN_FILENO+1, &fds, NULL, NULL, &tv);
+    return FD_ISSET(0, &fds);
+  }
+  void clean_stdin(void)
+  {
+    int c;
+    do {
+        c = getchar();
+    } while (getchar() != '\n' && c != EOF);
+  }
+
+  NodeStatus tick() override
+  {
+    // Check if a key is pressed
+
+    while (!inputAvailable()); 
+
+    cout << "[ keyboard pressed ]" << endl;
+    clean_stdin();
+    return NodeStatus::SUCCESS;
+  }  
+};
+
+
+
+
+
+
 class Exiting : public AsyncActionNode
 {
 public:
@@ -293,7 +335,6 @@ class Sleep : public BT::AsyncActionNode
 
 class Side_Empty : public AsyncActionNode
 {
-
   bool *follow_right;
   float *regions;
   float dist_th;
@@ -326,50 +367,6 @@ public:
     {
       cout << "No ]" <<endl;
 
-      return NodeStatus::FAILURE;
-    }
-  }  
-};
-
-
-
-class Key_Pressed : public AsyncActionNode
-{
-public:
-  Key_Pressed(const string &name) : AsyncActionNode(name, {}) {}
-
-  bool inputAvailable()  
-  { 
-    //FROM: https://web.archive.org/web/20170407122137/http://cc.byexamples.com/2007/04/08/non-blocking-user-input-in-loop-without-ncurses/
-    struct timeval tv;
-    fd_set fds;
-    tv.tv_sec = 0;
-    tv.tv_usec = 0;
-    FD_ZERO(&fds);
-    FD_SET(STDIN_FILENO, &fds);
-    select(STDIN_FILENO+1, &fds, NULL, NULL, &tv);
-    return FD_ISSET(0, &fds);
-  }
-  void clean_stdin(void)
-  {
-    int c;
-    do {
-        c = getchar();
-    } while (getchar() != '\n' && c != EOF);
-  }
-
-  NodeStatus tick() override
-  {
-    // Check if a key is pressed
-
-    if (inputAvailable()) 
-    {
-      cout << "[ keyboard pressed ]" << endl;
-      clean_stdin();
-      return NodeStatus::SUCCESS;
-    }
-    else
-    {
       return NodeStatus::FAILURE;
     }
   }  

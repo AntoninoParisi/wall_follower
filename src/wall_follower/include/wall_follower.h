@@ -61,7 +61,7 @@ public:
     factory.registerNodeType<Follow_Wall>("Follow_Wall");
     factory.registerNodeType<Side_Empty>("Side_Empty");
     factory.registerNodeType<Follow_Corner>("Follow_Corner");
-    factory.registerNodeType<Key_Pressed>("Key_Pressed");
+    factory.registerNodeType<Wait_Key>("Wait_Key");
     factory.registerNodeType<Rewind>("Rewind"); 
     factory.registerNodeType<Exiting>("Exiting"); 
     this->tree = factory.createTreeFromText(xml_tree);
