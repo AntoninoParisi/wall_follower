@@ -4,7 +4,7 @@
 #include <string>
 
 #include "rclcpp/rclcpp.hpp"
-#include "std_msgs/msg/bool.hpp"
+#include "std_msgs/msg/string.hpp"
 
 using namespace std::chrono_literals;
 using namespace std;
@@ -19,11 +19,11 @@ public:
   DirectionPublisher()
       : Node("direction_publisher")
   {
-    publisher_ = this->create_publisher<std_msgs::msg::Bool>("/direction", 10);
+    publisher_ = this->create_publisher<std_msgs::msg::String>("/direction", 10);
     timer_ = this->create_wall_timer(
         50ms, std::bind(&DirectionPublisher::timer_callback, this));
 
-    message = std_msgs::msg::Bool();
+    message = std_msgs::msg::String();
     message.data = true;
     actual_dir = 'r';
 
@@ -34,21 +34,31 @@ private:
   void timer_callback()
   {
     char ch;
-    cout << "per cambiare direzione gigitare L o R \n" << endl;
+    cout << "per cambiare direzione gigitare L o R / altro taso == REWIND \n" << endl;
     cin >> ch;
 
     cout << "CHAR : " << (char) ch ;
-    message.data = (char) ch == 'r' ? true : false;
-    (char)ch == 'r' ?  actual_dir = 'r' : actual_dir = 'l';
-    string msg_str = (char)actual_dir == 'r' ? "RIGHT" : "LEFT";
-    cout << "Choose between left (L) and right (R); actual direction : " << msg_str << endl;
+    if((char) ch == 'l')
+    {
+      message.data = "LEFT";
+    }
+    else if((char) ch == 'r')
+    {
+      message.data = "RIGHT";
+    }
+    else{
+      message.data = "REWIND";
+    }
+
+
+    cout << "Choose between left (L) and right (R); actual direction : " << message.data << endl;
     publisher_->publish(message);
   }
 
   rclcpp::TimerBase::SharedPtr timer_;
-  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr publisher_;
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
 
-  std_msgs::msg::Bool message;
+  std_msgs::msg::String message;
 
   char actual_dir;
   
