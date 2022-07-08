@@ -31,6 +31,9 @@ public:
   float regions[3];
   float dist_th;
   float max_vel;
+  string history_actions[100];  
+  float history_times[100];
+
 
   Tree tree;
 
@@ -69,7 +72,7 @@ public:
     for( auto& node: this->tree.nodes ){
       if( auto find_wall = dynamic_cast<Find_Wall*>( node.get() ))
       {
-          find_wall->init(&(this->twist_msg), this->regions, this->max_vel, this->dist_th);
+          find_wall->init(&(this->twist_msg), this->regions, this->max_vel, this->dist_th, this->history_actions, this->history_times);
       }
       if( auto side_choice = dynamic_cast<Side_Choice*>( node.get() ))
       {
@@ -77,11 +80,11 @@ public:
       }
       if( auto align = dynamic_cast<Align*>( node.get() ))
       {
-          align->init(&(this->follow_right), &(this->twist_msg), this->regions, this->max_vel, this->dist_th);
+          align->init(&(this->follow_right), &(this->twist_msg), this->regions, this->max_vel, this->dist_th, this->history_actions, this->history_times);
       }
       if( auto follow_wall = dynamic_cast<Follow_Wall*>( node.get() ))
       {
-          follow_wall->init(&(this->follow_right), &(this->twist_msg), this->regions, this->max_vel, this->dist_th);
+          follow_wall->init(&(this->follow_right), &(this->twist_msg), this->regions, this->max_vel, this->dist_th, this->history_actions, this->history_times);
       }
       if( auto side_empty = dynamic_cast<Side_Empty*>( node.get() ))
       {
@@ -89,11 +92,11 @@ public:
       }
       if( auto follow_corner = dynamic_cast<Follow_Corner*>( node.get() ))
       {
-          follow_corner->init(&(this->follow_right), &(this->twist_msg), this->regions, this->max_vel, this->dist_th);
+          follow_corner->init(&(this->follow_right), &(this->twist_msg), this->regions, this->max_vel, this->dist_th, this->history_actions, this->history_times);
       }
       if( auto rewind = dynamic_cast<Rewind*>( node.get() ))
       {
-          rewind->init(&(this->follow_right), &(this->twist_msg), this->regions, this->max_vel, this->dist_th);
+          rewind->init(&(this->follow_right), &(this->publisher_), &(this->twist_msg), this->dist_th, this->history_actions, this->history_times);
       }
     }
 
@@ -142,6 +145,7 @@ private:
   {
     this->tree.tickRoot();
     publisher_->publish(twist_msg);
+    //cout << "." << endl;
   }
 };
 
