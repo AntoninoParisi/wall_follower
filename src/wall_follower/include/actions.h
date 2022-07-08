@@ -7,6 +7,11 @@
 #include "geometry_msgs/msg/twist.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
 
+#include <unistd.h>
+#include <stdio.h>
+#include <sys/select.h>
+
+
 using namespace std;
 using namespace BT;
 
@@ -195,6 +200,95 @@ public:
   }
 };
 
+class Rewind : public AsyncActionNode
+{
+  bool *follow_right;
+  geometry_msgs::msg::Twist *twist_msg;
+  float *regions;
+  float max_vel;
+  float dist_th;
+
+public:
+  Rewind(const string &name) : AsyncActionNode(name, {}) {}
+
+  void init(bool *follow_right_, geometry_msgs::msg::Twist *twist_msg_, float (&regions_)[3], float max_vel_, float dist_th_)
+  {
+    this->follow_right = follow_right_;
+    this->twist_msg = twist_msg_;
+    this->regions = regions_;
+    this->max_vel = max_vel_;
+    this->dist_th = dist_th_;
+  }
+
+  NodeStatus tick() override
+  {
+    // 180 rotation and repetition of al action in history
+
+    cout << "[ Rewind ]" << endl;
+
+    *this->follow_right = (this->follow_right)? false : true;
+
+    return NodeStatus::SUCCESS;
+  }
+};
+
+class Exiting : public AsyncActionNode
+{
+public:
+  Exiting(const string &name) : AsyncActionNode(name, {}) {}
+
+  NodeStatus tick() override
+  {
+    // Tool to advise the running reach a final node on the tree
+
+    cout << "[ Exiting ]" << endl;
+
+    return NodeStatus::SUCCESS;
+  }
+};
+
+
+
+
+
+/*
+class Sleep : public BT::AsyncActionNode
+{
+  public:
+    Sleep(const std::string& name, const BT::NodeConfiguration& config)
+      : AsyncActionNode(name, config)
+    {}
+
+    static BT::PortsList providedPorts()
+    {
+      return{ BT::InputPort<int>("msec") };
+    }
+
+    NodeStatus tick() override
+    {  
+      // This code run in its own thread, therefore the Tree is still running.
+      int msec = 0;
+      getInput("msec", msec);
+
+      using namespace std::chrono;
+      const auto deadline = system_clock::now() + milliseconds(msec);
+
+      // periodically check isHaltRequested() 
+      // and sleep for a small amount of time only (1 millisecond)
+      while( !isHaltRequested() && system_clock::now() < deadline )
+      {
+        std::this_thread::sleep_for( std::chrono::milliseconds(1) );
+      }
+      return NodeStatus::SUCCESS;
+    }
+
+    // The halt() method will set isHaltRequested() to true 
+    // and stop the while loop in the spawned thread.
+};
+*/
+
+
+
 // CONDITIONS
 
 class Side_Empty : public AsyncActionNode
@@ -232,6 +326,50 @@ public:
     {
       cout << "No ]" <<endl;
 
+      return NodeStatus::FAILURE;
+    }
+  }  
+};
+
+
+
+class Key_Pressed : public AsyncActionNode
+{
+public:
+  Key_Pressed(const string &name) : AsyncActionNode(name, {}) {}
+
+  bool inputAvailable()  
+  { 
+    //FROM: https://web.archive.org/web/20170407122137/http://cc.byexamples.com/2007/04/08/non-blocking-user-input-in-loop-without-ncurses/
+    struct timeval tv;
+    fd_set fds;
+    tv.tv_sec = 0;
+    tv.tv_usec = 0;
+    FD_ZERO(&fds);
+    FD_SET(STDIN_FILENO, &fds);
+    select(STDIN_FILENO+1, &fds, NULL, NULL, &tv);
+    return FD_ISSET(0, &fds);
+  }
+  void clean_stdin(void)
+  {
+    int c;
+    do {
+        c = getchar();
+    } while (getchar() != '\n' && c != EOF);
+  }
+
+  NodeStatus tick() override
+  {
+    // Check if a key is pressed
+
+    if (inputAvailable()) 
+    {
+      cout << "[ keyboard pressed ]" << endl;
+      clean_stdin();
+      return NodeStatus::SUCCESS;
+    }
+    else
+    {
       return NodeStatus::FAILURE;
     }
   }  

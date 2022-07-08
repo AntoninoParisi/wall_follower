@@ -61,6 +61,9 @@ public:
     factory.registerNodeType<Follow_Wall>("Follow_Wall");
     factory.registerNodeType<Side_Empty>("Side_Empty");
     factory.registerNodeType<Follow_Corner>("Follow_Corner");
+    factory.registerNodeType<Key_Pressed>("Key_Pressed");
+    factory.registerNodeType<Rewind>("Rewind"); 
+    factory.registerNodeType<Exiting>("Exiting"); 
     this->tree = factory.createTreeFromText(xml_tree);
 
     for( auto& node: this->tree.nodes ){
@@ -87,6 +90,10 @@ public:
       if( auto follow_corner = dynamic_cast<Follow_Corner*>( node.get() ))
       {
           follow_corner->init(&(this->follow_right), &(this->twist_msg), this->regions, this->max_vel, this->dist_th);
+      }
+      if( auto rewind = dynamic_cast<Rewind*>( node.get() ))
+      {
+          rewind->init(&(this->follow_right), &(this->twist_msg), this->regions, this->max_vel, this->dist_th);
       }
     }
 
