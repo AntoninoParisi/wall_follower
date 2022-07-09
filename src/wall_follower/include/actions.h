@@ -19,7 +19,7 @@ using namespace BT;
 
 string action_name;
 float side;
-int action_counter = 0;
+int action_counter=0;
 chrono::steady_clock::time_point t_start;
 
 class Find_Wall : public AsyncActionNode
@@ -29,7 +29,7 @@ class Find_Wall : public AsyncActionNode
   float *regions;
   float max_vel;
   float dist_th;
-  string *history_actions;
+  string *history_actions;  
   float *history_times;
 
 public:
@@ -52,7 +52,7 @@ public:
     cout << "[ Finding a wall ]" << endl;
 
     t_start = chrono::steady_clock::now();
-
+    
     while (this->regions[0] > this->dist_th)
     {
       this->twist_msg->linear.x = (this->regions[0] * this->regions[0] < this->max_vel) ? this->regions[0] * this->regions[0] : this->max_vel;
@@ -63,7 +63,7 @@ public:
     this->twist_msg->angular.z = 0.0;
 
     this->history_actions[action_counter] = "Find_Wall";
-    this->history_times[action_counter++] = chrono::duration<float>(chrono::steady_clock::now() - t_start).count();
+    this->history_times[action_counter++] = chrono::duration<float>(chrono::steady_clock::now()- t_start).count();
     return NodeStatus::SUCCESS;
   }
 };
@@ -106,7 +106,7 @@ class Align : public AsyncActionNode
   float *regions;
   float max_vel;
   float dist_th;
-  string *history_actions;
+  string *history_actions;  
   float *history_times;
 
 public:
@@ -130,7 +130,7 @@ public:
     cout << "[ Aligning ]" << endl;
 
     t_start = chrono::steady_clock::now();
-
+    
     while (this->regions[0] < this->dist_th)
     {
       this->twist_msg->angular.z = (this->follow_right) ? 0.5 : -0.5;
@@ -139,7 +139,7 @@ public:
     this->twist_msg->angular.z = 0.0;
 
     this->history_actions[action_counter] = "Align\t";
-    this->history_times[action_counter++] = chrono::duration<float>(chrono::steady_clock::now() - t_start).count();
+    this->history_times[action_counter++] = chrono::duration<float>(chrono::steady_clock::now()- t_start).count();
     return NodeStatus::SUCCESS;
   }
 };
@@ -151,7 +151,7 @@ class Follow_Wall : public AsyncActionNode
   float *regions;
   float max_vel;
   float dist_th;
-  string *history_actions;
+  string *history_actions;  
   float *history_times;
 
 public:
@@ -175,10 +175,10 @@ public:
     cout << "[ Following a wall ]" << endl;
 
     t_start = chrono::steady_clock::now();
-
+    
     side = (this->follow_right) ? this->regions[1] : this->regions[2];
 
-    while (side<this->dist_th &&this->regions[0]> this->dist_th)
+    while (side < this->dist_th && this->regions[0] > this->dist_th)
     {
       this->twist_msg->linear.x = 0.3;
 
@@ -188,7 +188,7 @@ public:
     this->twist_msg->linear.x = 0.0;
 
     this->history_actions[action_counter] = "Follow_Wall";
-    this->history_times[action_counter++] = chrono::duration<float>(chrono::steady_clock::now() - t_start).count();
+    this->history_times[action_counter++] = chrono::duration<float>(chrono::steady_clock::now()- t_start).count();
     return NodeStatus::SUCCESS;
   }
 };
@@ -200,7 +200,7 @@ class Follow_Corner : public AsyncActionNode
   float *regions;
   float max_vel;
   float dist_th;
-  string *history_actions;
+  string *history_actions;  
   float *history_times;
 
 public:
@@ -224,8 +224,8 @@ public:
     cout << "[ Following a corner ]" << endl;
 
     t_start = chrono::steady_clock::now();
-
-    while (this->regions[0] > this->dist_th)
+    
+    while (this->regions[0] > this->dist_th )
     {
       this->twist_msg->linear.x = 0.12;
       this->twist_msg->angular.z = (this->follow_right) ? -0.5 : 0.5;
@@ -235,87 +235,39 @@ public:
     this->twist_msg->angular.z = 0.0;
 
     this->history_actions[action_counter] = "Follow_Corner";
-    this->history_times[action_counter++] = chrono::duration<float>(chrono::steady_clock::now() - t_start).count();
+    this->history_times[action_counter++] = chrono::duration<float>(chrono::steady_clock::now()- t_start).count();
     return NodeStatus::SUCCESS;
   }
 };
 
-class Wait_Key : public AsyncActionNode
-{
-public:
-  Wait_Key(const string &name) : AsyncActionNode(name, {}) {}
-
-  bool inputAvailable()
-  {
-    struct timeval tv;
-    fd_set fds;
-    tv.tv_sec = 0;
-    tv.tv_usec = 0;
-    FD_ZERO(&fds);
-    FD_SET(STDIN_FILENO, &fds);
-    select(STDIN_FILENO + 1, &fds, NULL, NULL, &tv);
-    return FD_ISSET(0, &fds);
-  }
-  void clean_stdin(void)
-  {
-    int c;
-    do
-    {
-      c = getchar();
-    } while (getchar() != '\n' && c != EOF);
-  }
-
-  NodeStatus tick() override
-  {
-    // Check if a key is pressed
-
-    while (!inputAvailable())
-      ;
-
-    cout << "[ keyboard pressed ]" << endl;
-    clean_stdin();
-    return NodeStatus::SUCCESS;
-  }
-};
-
-class Rewind : public SyncActionNode
+class Rewind : public AsyncActionNode
 {
   bool *follow_right;
-  rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr publisher;
   geometry_msgs::msg::Twist *twist_msg;
   float dist_th;
-  string * history_actions;
+  string *history_actions;  
   float *history_times;
-  bool * rewind;
 
 public:
-  Rewind(const string &name) : SyncActionNode(name, {}) {}
+  Rewind(const string &name) : AsyncActionNode(name, {}) {}
 
-  void init(bool *follow_right_, rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr publisher_, geometry_msgs::msg::Twist *twist_msg_, float dist_th_, string (&history_actions_)[100], float (&history_times_)[100], bool * rewind_)
+  void init(bool *follow_right_, geometry_msgs::msg::Twist *twist_msg_, float dist_th_, string (&history_actions_)[100], float (&history_times_)[100])
   {
     this->follow_right = follow_right_;
-    this->publisher = publisher_;
     this->twist_msg = twist_msg_;
     this->dist_th = dist_th_;
     this->history_actions = history_actions_;
     this->history_times = history_times_;
-    this->rewind = rewind_;
   }
 
-  void turn(int angle, int time_, float side)
-  {
-    this->twist_msg->linear.x = 0.0;
-    this->twist_msg->angular.z = side * (angle * 3.14 / 180) / time_;
+  void turn(int angle, int time_, float side){
+
     t_start = chrono::steady_clock::now();
-    while (chrono::duration<float>(chrono::steady_clock::now() - t_start).count() < time_)
-    {
-
-      this->publisher->publish(*(this->twist_msg));
-
-      rclcpp::sleep_for(5ms);
+    while(chrono::duration<float>(chrono::steady_clock::now()- t_start).count() < time_){
+      this->twist_msg->linear.x = 0.0;        
+      this->twist_msg->angular.z = side*(angle*3.14/180)/time_;
     }
     this->twist_msg->angular.z = 0.0;
-    // this->publisher->publish(this->twist_msg);
   }
 
   NodeStatus tick() override
@@ -326,22 +278,19 @@ public:
 
     turn(180, 1.0, 1);
 
-    cout << "FINE TURN" << endl;
+    //cout << "FINE TURN" << endl;
 
-    *this->follow_right = (this->follow_right) ? false : true;
+    *this->follow_right = (this->follow_right)? false : true;
 
-    for (int i = action_counter; i > 0; i--)
-    {
-      cout << history_actions[i] << "\t|\t" << history_times[i] << endl;
-      // t_start = chrono::steady_clock::now();
-      // while (chrono::duration<float>(chrono::steady_clock::now() - t_start).count() < history_times[i])
-      turn(25, 1.0, 1);
-      // TODO: Execute the action
+    for (int i = action_counter; i>0; i--){
+      cout << history_actions[i] << "\t|\t" << history_times[i] <<endl;
+      t_start = chrono::steady_clock::now();
+      while(chrono::duration<float>(chrono::steady_clock::now()- t_start).count() < history_times[i]);
+      //TODO: Execute the action
     }
     action_counter = 0;
 
-    *(this->follow_right) = (this->follow_right) ? false : true;
-    *(this->rewind) = false;
+    *this->follow_right = (this->follow_right)? false : true;
 
     return NodeStatus::SUCCESS;
   }
@@ -364,14 +313,14 @@ public:
 
 // CONDITIONS
 
-class Side_Empty : public AsyncActionNode
+class Side_Occupied : public AsyncActionNode
 {
   bool *follow_right;
   float *regions;
   float dist_th;
 
 public:
-  Side_Empty(const string &name) : AsyncActionNode(name, {}) {}
+  Side_Occupied(const string &name) : AsyncActionNode(name, {}) {}
 
   void init(bool *follow_right_, float (&regions_)[3], float dist_th_)
   {
@@ -384,26 +333,66 @@ public:
   {
     // Check if the side to follow is empty (If it is the follow fall ends because a slim wall)
 
-    cout << "[ Is the side empty? ";
+    cout << "[ Is the side Occupied? ";
 
     side = (this->follow_right) ? this->regions[1] : this->regions[2];
 
-    if (side > this->dist_th)
+    if (side < this->dist_th)
     {
-      cout << "Yes ]" << endl;
+      cout << "Yes ]" <<endl;
 
       return NodeStatus::SUCCESS;
     }
     else
     {
-      cout << "No ]" << endl;
+      cout << "No ]" <<endl;
 
       return NodeStatus::FAILURE;
     }
+  }  
+};
+
+class Wait_Key : public AsyncActionNode
+{
+public:
+  Wait_Key(const string &name) : AsyncActionNode(name, {}) {}
+
+  bool inputAvailable()  
+  { 
+    struct timeval tv;
+    fd_set fds;
+    tv.tv_sec = 0;
+    tv.tv_usec = 0;
+    FD_ZERO(&fds);
+    FD_SET(STDIN_FILENO, &fds);
+    select(STDIN_FILENO+1, &fds, NULL, NULL, &tv);
+    return FD_ISSET(0, &fds);
   }
+  void clean_stdin(void)
+  {
+    int c;
+    do {
+        c = getchar();
+    } while (getchar() != '\n' && c != EOF);
+  }
+
+  NodeStatus tick() override
+  {
+    // Return FAILURE when a key is pressed
+
+    if (inputAvailable()){
+    clean_stdin();
+    cout << "[ keyboard pressed ]" << endl; 
+    return NodeStatus::FAILURE;
+    } 
+    else{ 
+      return NodeStatus::SUCCESS;
+    }
+  }  
 };
 
 #endif
+
 
 /*
 class Sleep : public BT::AsyncActionNode
@@ -419,7 +408,7 @@ class Sleep : public BT::AsyncActionNode
     }
 
     NodeStatus tick() override
-    {
+    {  
       // This code run in its own thread, therefore the Tree is still running.
       int msec = 0;
       getInput("msec", msec);
@@ -427,7 +416,7 @@ class Sleep : public BT::AsyncActionNode
       using namespace std::chrono;
       const auto deadline = system_clock::now() + milliseconds(msec);
 
-      // periodically check isHaltRequested()
+      // periodically check isHaltRequested() 
       // and sleep for a small amount of time only (1 millisecond)
       while( !isHaltRequested() && system_clock::now() < deadline )
       {
@@ -436,7 +425,7 @@ class Sleep : public BT::AsyncActionNode
       return NodeStatus::SUCCESS;
     }
 
-    // The halt() method will set isHaltRequested() to true
+    // The halt() method will set isHaltRequested() to true 
     // and stop the while loop in the spawned thread.
 };
 */
