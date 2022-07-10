@@ -240,6 +240,46 @@ public:
   }
 };
 
+class Turn : public AsyncActionNode
+{
+  geometry_msgs::msg::Twist *twist_msg;
+  string *history_actions;  
+  float *history_times;
+
+public:
+  Turn(const string &name) : AsyncActionNode(name, {}) {}
+
+  void init(geometry_msgs::msg::Twist *twist_msg_, string (&history_actions_)[100], float (&history_times_)[100])
+  {
+    this->twist_msg = twist_msg_;
+    this->history_actions = history_actions_;
+    this->history_times = history_times_;
+  }
+
+  NodeStatus tick() override
+  {
+    // Go in circle until a wall appears in the side to follow region (and a wall in the front region is detected)
+
+    cout << "[ Turning ]" << endl;
+
+    t_start = chrono::steady_clock::now();
+    
+    int angle = 180;
+    int time_ = 1;
+    float side = 1;
+
+    while(chrono::duration<float>(chrono::steady_clock::now()- t_start).count() < time_){
+      this->twist_msg->linear.x = 0.0;        
+      this->twist_msg->angular.z = side*(angle*3.14/180)/time_;
+    }
+    this->twist_msg->angular.z = 0.0;
+  
+    this->history_actions[action_counter] = "Turn";
+    this->history_times[action_counter++] = chrono::duration<float>(chrono::steady_clock::now()- t_start).count();
+    return NodeStatus::SUCCESS;
+  }
+};
+
 class Rewind : public AsyncActionNode
 {
   bool *follow_right;
@@ -260,29 +300,15 @@ public:
     this->history_times = history_times_;
   }
 
-  void turn(int angle, int time_, float side){
-
-    t_start = chrono::steady_clock::now();
-    while(chrono::duration<float>(chrono::steady_clock::now()- t_start).count() < time_){
-      this->twist_msg->linear.x = 0.0;        
-      this->twist_msg->angular.z = side*(angle*3.14/180)/time_;
-    }
-    this->twist_msg->angular.z = 0.0;
-  }
-
   NodeStatus tick() override
   {
-    // 180 rotation and repetition of al action in history
+    //repeat all action in history
 
     cout << "[ Rewind ]" << endl;
 
-    turn(180, 1.0, 1);
-
-    //cout << "FINE TURN" << endl;
-
     *this->follow_right = (this->follow_right)? false : true;
 
-    for (int i = action_counter; i>0; i--){
+    for (int i = action_counter-2; i>0; i--){
       cout << history_actions[i] << "\t|\t" << history_times[i] <<endl;
       t_start = chrono::steady_clock::now();
       while(chrono::duration<float>(chrono::steady_clock::now()- t_start).count() < history_times[i]);
@@ -303,13 +329,15 @@ public:
 
   NodeStatus tick() override
   {
-    // Tool to advise the running reach a final node on the tree
+    // Tool to advise the running reach the final node on the tree
 
     cout << "[ Exiting ]" << endl;
 
     return NodeStatus::SUCCESS;
   }
 };
+
+
 
 // CONDITIONS
 
@@ -352,10 +380,43 @@ public:
   }  
 };
 
-class Wait_Key : public AsyncActionNode
+class Collision_Detector : public AsyncActionNode
+{
+  float *regions;
+  float dist_th;
+
+public:
+  Collision_Detector(const string &name) : AsyncActionNode(name, {}) {}
+
+  void init(float (&regions_)[3], float dist_th_)
+  {
+    this->regions = regions_;
+    this->dist_th = dist_th_;
+  }
+
+  NodeStatus tick() override
+  {
+    // Return FAILURE if something appear in the frontal region
+
+    cout << "." << endl;
+
+    if (this->regions[0] < this->dist_th*0.9)
+    {
+      cout << "[ Collision Detected ]" <<endl;
+
+      return NodeStatus::FAILURE;
+    }
+    else
+    {
+      return NodeStatus::SUCCESS;
+    }
+  }  
+};
+
+class Key_Detector : public AsyncActionNode
 {
 public:
-  Wait_Key(const string &name) : AsyncActionNode(name, {}) {}
+  Key_Detector(const string &name) : AsyncActionNode(name, {}) {}
 
   bool inputAvailable()  
   { 
@@ -392,40 +453,3 @@ public:
 };
 
 #endif
-
-
-/*
-class Sleep : public BT::AsyncActionNode
-{
-  public:
-    Sleep(const std::string& name, const BT::NodeConfiguration& config)
-      : AsyncActionNode(name, config)
-    {}
-
-    static BT::PortsList providedPorts()
-    {
-      return{ BT::InputPort<int>("msec") };
-    }
-
-    NodeStatus tick() override
-    {  
-      // This code run in its own thread, therefore the Tree is still running.
-      int msec = 0;
-      getInput("msec", msec);
-
-      using namespace std::chrono;
-      const auto deadline = system_clock::now() + milliseconds(msec);
-
-      // periodically check isHaltRequested() 
-      // and sleep for a small amount of time only (1 millisecond)
-      while( !isHaltRequested() && system_clock::now() < deadline )
-      {
-        std::this_thread::sleep_for( std::chrono::milliseconds(1) );
-      }
-      return NodeStatus::SUCCESS;
-    }
-
-    // The halt() method will set isHaltRequested() to true 
-    // and stop the while loop in the spawned thread.
-};
-*/

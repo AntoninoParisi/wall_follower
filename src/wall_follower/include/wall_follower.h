@@ -64,8 +64,10 @@ public:
     factory.registerNodeType<Follow_Wall>("Follow_Wall");
     factory.registerNodeType<Side_Occupied>("Side_Occupied");
     factory.registerNodeType<Follow_Corner>("Follow_Corner");
-    factory.registerNodeType<Wait_Key>("Wait_Key");
+    factory.registerNodeType<Key_Detector>("Key_Detector");
     factory.registerNodeType<Rewind>("Rewind"); 
+    factory.registerNodeType<Collision_Detector>("Collision_Detector"); 
+    factory.registerNodeType<Turn>("Turn"); 
     factory.registerNodeType<Exiting>("Exiting"); 
     this->tree = factory.createTreeFromText(xml_tree);
 
@@ -97,6 +99,14 @@ public:
       if( auto rewind = dynamic_cast<Rewind*>( node.get() ))
       {
           rewind->init(&(this->follow_right), &(this->twist_msg), this->dist_th, this->history_actions, this->history_times);
+      }
+      if( auto collision_detect = dynamic_cast<Collision_Detector*>( node.get() ))
+      {
+          collision_detect->init(this->regions, this->dist_th);
+      }
+      if( auto turn = dynamic_cast<Turn*>( node.get() ))
+      {
+          turn->init(&(this->twist_msg), this->history_actions, this->history_times);
       }
     }
 
