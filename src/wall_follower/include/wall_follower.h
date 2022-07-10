@@ -26,6 +26,7 @@ public:
   // VARIABILI DI CLASSE
 
   bool follow_right;
+  // bool *fr;
   vector<float> lidar;
   int lidar_len;
   float regions[3];
@@ -49,7 +50,8 @@ public:
 
   Wall_Follower(const char *xml_tree) : rclcpp::Node("Wall_Follower")
   {
-    this->follow_right = true;
+    this->follow_right = false;
+    // *(this->fr) = false; crash of the program while running without errors
     this->lidar_len = 0;
     this->regions[0] = 1.0;
     this->regions[1] = 1.0;

@@ -87,9 +87,9 @@ public:
   {
     /// Set the side to follow according to the closest wall
 
-    *this->follow_right = (this->regions[1] < this->regions[2]) ? true : false;
+    //*this->follow_right = (this->regions[1] < this->regions[2]) ? true : false;
 
-    if (this->follow_right)
+    if (*(this->follow_right))
       cout << "[ Follow right ]" << endl; // THE WALL IS ON THE ROBOT RIGHT
     else
       cout << "[ Follow left ]" << endl; // THE WALL IS ON THE ROBOT LEFT
@@ -133,7 +133,7 @@ public:
     
     while (this->regions[0] < this->dist_th)
     {
-      this->twist_msg->angular.z = (this->follow_right) ? 0.5 : -0.5;
+      this->twist_msg->angular.z = (*(this->follow_right)) ? 0.5 : -0.5;
     }
 
     this->twist_msg->angular.z = 0.0;
@@ -176,13 +176,13 @@ public:
 
     t_start = chrono::steady_clock::now();
     
-    side = (this->follow_right) ? this->regions[1] : this->regions[2];
+    side = *(this->follow_right) ? this->regions[1] : this->regions[2];
 
     while (side < this->dist_th && this->regions[0] > this->dist_th)
     {
       this->twist_msg->linear.x = 0.3;
 
-      side = (this->follow_right) ? this->regions[1] : this->regions[2];
+      side = *(this->follow_right) ? this->regions[1] : this->regions[2];
     }
 
     this->twist_msg->linear.x = 0.0;
@@ -228,7 +228,7 @@ public:
     while (this->regions[0] > this->dist_th )
     {
       this->twist_msg->linear.x = 0.12;
-      this->twist_msg->angular.z = (this->follow_right) ? -0.5 : 0.5;
+      this->twist_msg->angular.z = *(this->follow_right) ? -0.5 : 0.5;
     }
 
     this->twist_msg->linear.x = 0.0;
@@ -306,7 +306,7 @@ public:
 
     cout << "[ Rewind ]" << endl;
 
-    *this->follow_right = (this->follow_right)? false : true;
+    *this->follow_right = *(this->follow_right) ? false : true;
 
     for (int i = action_counter-2; i>0; i--){
       cout << history_actions[i] << "\t|\t" << history_times[i] <<endl;
@@ -316,7 +316,7 @@ public:
     }
     action_counter = 0;
 
-    *this->follow_right = (this->follow_right)? false : true;
+    *this->follow_right = *(this->follow_right) ? false : true;
 
     return NodeStatus::SUCCESS;
   }
@@ -363,7 +363,7 @@ public:
 
     cout << "[ Is the side Occupied? ";
 
-    side = (this->follow_right) ? this->regions[1] : this->regions[2];
+    side = *(this->follow_right) ? this->regions[1] : this->regions[2];
 
     if (side < this->dist_th)
     {
