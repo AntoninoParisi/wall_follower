@@ -95,15 +95,14 @@ public:
   {
     /// Set the side to follow according to the closest wall
 
-    cout << this->regions[2] << " ! " << this->regions[1] << endl;
-
     *this->follow_right = (this->regions[1] < this->regions[2]) ? true : false;
-
-    if (this->follow_right)
+    
+    /*
+    if (*this->follow_right)
       cout << "[ Follow right ]" << endl; // THE WALL IS ON THE ROBOT RIGHT
     else
       cout << "[ Follow left ]" << endl; // THE WALL IS ON THE ROBOT LEFT
-
+    */
     return NodeStatus::SUCCESS;
   }
 };
