@@ -25,20 +25,19 @@ chrono::steady_clock::time_point t_start;
 string history_actions[1000];  
 float history_times[1000];
 
-// history_actions = "Find_Wall";
 
 class Find_Wall : public AsyncActionNode
 {
   bool *follow_right;
   geometry_msgs::msg::Twist *twist_msg;
-  float (*regions)[3];
+  float *regions;
   float max_vel;
   float dist_th;
 
 public:
   Find_Wall(const string &name) : AsyncActionNode(name, {}) {}
 
-  void init(bool *follow_right_, geometry_msgs::msg::Twist *twist_msg_, float (*regions_)[3], float max_vel_, float dist_th_ )
+  void init(bool *follow_right_, geometry_msgs::msg::Twist *twist_msg_, float *regions_, float max_vel_, float dist_th_ )
   {
     this->follow_right = follow_right_;
     this->twist_msg = twist_msg_;
@@ -51,14 +50,14 @@ public:
   {
     // Go straight until a wall in front region is detected
 
-    cout << "[ Finding a wall ]" << endl;
+    // cout << "[ Finding a wall ]" << endl;
 
     t_start = chrono::steady_clock::now();
     
-    while (*(this->regions[0]) > this->dist_th)
+    while (this->regions[0] > this->dist_th)
     {
-      this->twist_msg->linear.x = (*(this->regions[0]) * *(this->regions[0]) < this->max_vel) ? *(this->regions[0]) * *(this->regions[0]) : this->max_vel;
-      this->twist_msg->angular.z = (*(this->follow_right)) ? -0.15 : 0.15;;
+      this->twist_msg->linear.x = (this->regions[0] * this->regions[0] < this->max_vel) ? this->regions[0] * this->regions[0] : this->max_vel;
+      this->twist_msg->angular.z = (*(this->follow_right)) ? 0.15 : -0.15;;
     }
 
     this->twist_msg->linear.x = 0.0;
@@ -68,18 +67,25 @@ public:
     history_times[action_counter++] = chrono::duration<float>(chrono::steady_clock::now()- t_start).count();
     return NodeStatus::SUCCESS;
   }
+
+    void halt() override
+    {
+      this->twist_msg->linear.x = 0.0;
+      this->twist_msg->angular.z = 0.0;
+    }
+
+
 };
 
 class Side_Choice : public AsyncActionNode
 {
-
-  float (*regions)[3];
+  float *regions;
   bool *follow_right;
 
 public:
   Side_Choice(const string &name) : AsyncActionNode(name, {}) {}
 
-  void init(bool *follow_right_, float (*regions_)[3])
+  void init(bool *follow_right_, float *regions_)
   {
     this->follow_right = follow_right_;
     this->regions = regions_;
@@ -89,7 +95,9 @@ public:
   {
     /// Set the side to follow according to the closest wall
 
-    *this->follow_right = (*(this->regions[1]) < *(this->regions[2])) ? true : false;
+    cout << this->regions[2] << " ! " << this->regions[1] << endl;
+
+    *this->follow_right = (this->regions[1] < this->regions[2]) ? true : false;
 
     if (this->follow_right)
       cout << "[ Follow right ]" << endl; // THE WALL IS ON THE ROBOT RIGHT
@@ -104,14 +112,14 @@ class Align : public AsyncActionNode
 {
   bool *follow_right;
   geometry_msgs::msg::Twist *twist_msg;
-  float (*regions)[3];
+  float *regions;
   float max_vel;
   float dist_th;
 
 public:
   Align(const string &name) : AsyncActionNode(name, {}) {}
 
-  void init(bool *follow_right_, geometry_msgs::msg::Twist *twist_msg_, float (*regions_)[3], float max_vel_, float dist_th_ )
+  void init(bool *follow_right_, geometry_msgs::msg::Twist *twist_msg_, float *regions_, float max_vel_, float dist_th_ )
   {
     this->follow_right = follow_right_;
     this->twist_msg = twist_msg_;
@@ -124,11 +132,11 @@ public:
   {
     // Turn, left or right according to the chosen side, until the front region is empty
 
-    cout << "[ Aligning ]" << endl;
+    // cout << "[ Aligning ]" << endl;
 
     t_start = chrono::steady_clock::now();
     
-    while (*(this->regions[0]) < this->dist_th)
+    while (this->regions[0] < this->dist_th)
     {
       this->twist_msg->angular.z = (*(this->follow_right)) ? 0.5 : -0.5;
     }
@@ -139,21 +147,26 @@ public:
     history_times[action_counter++] = chrono::duration<float>(chrono::steady_clock::now()- t_start).count();
     return NodeStatus::SUCCESS;
   }
+
+  void halt() override
+    {
+      this->twist_msg->linear.x = 0.0;
+      this->twist_msg->angular.z = 0.0;
+    }
 };
 
 class Follow_Wall : public AsyncActionNode
 {
   bool *follow_right;
   geometry_msgs::msg::Twist *twist_msg;
-  float (*regions)[3];
+  float *regions;
   float max_vel;
   float dist_th;
-
 
 public:
   Follow_Wall(const string &name) : AsyncActionNode(name, {}) {}
 
-  void init(bool *follow_right_, geometry_msgs::msg::Twist *twist_msg_, float (*regions_)[3], float max_vel_, float dist_th_ )
+  void init(bool *follow_right_, geometry_msgs::msg::Twist *twist_msg_, float *regions_, float max_vel_, float dist_th_ )
   {
     this->follow_right = follow_right_;
     this->twist_msg = twist_msg_;
@@ -166,17 +179,17 @@ public:
   {
     // Go straight until a wall in the front region is detected or the side to follow region is empty
 
-    cout << "[ Following a wall ]" << endl;
+    // cout << "[ Following a wall ]" << endl;
 
     t_start = chrono::steady_clock::now();
     
-    side = *(this->follow_right) ? *(this->regions[1]) : *(this->regions[2]);
+    side = *(this->follow_right) ? this->regions[1] : this->regions[2];
 
-    while (side < this->dist_th && *(this->regions[0]) > this->dist_th)
+    while (side < this->dist_th && this->regions[0] > this->dist_th)
     {
       this->twist_msg->linear.x = 0.3;
 
-      side = *(this->follow_right) ? *(this->regions[1]) : *(this->regions[2]);
+      side = *(this->follow_right) ? this->regions[1] : this->regions[2];
     }
 
     this->twist_msg->linear.x = 0.0;
@@ -185,20 +198,26 @@ public:
     history_times[action_counter++] = chrono::duration<float>(chrono::steady_clock::now()- t_start).count();
     return NodeStatus::SUCCESS;
   }
+
+  void halt() override
+    {
+      this->twist_msg->linear.x = 0.0;
+      this->twist_msg->angular.z = 0.0;
+    }
 };
 
 class Follow_Corner : public AsyncActionNode
 {
   bool *follow_right;
   geometry_msgs::msg::Twist *twist_msg;
-  float (*regions)[3];
+  float *regions;
   float max_vel;
   float dist_th;
 
 public:
   Follow_Corner(const string &name) : AsyncActionNode(name, {}) {}
 
-  void init(bool *follow_right_, geometry_msgs::msg::Twist *twist_msg_, float (*regions_)[3], float max_vel_, float dist_th_ )
+  void init(bool *follow_right_, geometry_msgs::msg::Twist *twist_msg_, float *regions_, float max_vel_, float dist_th_ )
   {
     this->follow_right = follow_right_;
     this->twist_msg = twist_msg_;
@@ -211,11 +230,11 @@ public:
   {
     // Follow a  circle path until a wall appears in the side to follow region (and a wall in the front region is detected)
 
-    cout << "[ Following a corner ]" << endl;
+    // cout << "[ Following a corner ]" << endl;
 
     t_start = chrono::steady_clock::now();
     
-    while (*(this->regions[0]) > this->dist_th )
+    while (this->regions[0] > this->dist_th )
     {
       this->twist_msg->linear.x = 0.12;
       this->twist_msg->angular.z = *(this->follow_right) ? -0.5 : 0.5;
@@ -228,6 +247,12 @@ public:
     history_times[action_counter++] = chrono::duration<float>(chrono::steady_clock::now()- t_start).count();
     return NodeStatus::SUCCESS;
   }
+
+  void halt() override
+    {
+      this->twist_msg->linear.x = 0.0;
+      this->twist_msg->angular.z = 0.0;
+    }
 };
 
 class Turn : public AsyncActionNode
@@ -265,20 +290,26 @@ public:
     history_times[action_counter++] = chrono::duration<float>(chrono::steady_clock::now()- t_start).count();
     return NodeStatus::SUCCESS;
   }
+
+  void halt() override
+    {
+      this->twist_msg->linear.x = 0.0;
+      this->twist_msg->angular.z = 0.0;
+    }
 };
 
 class Rewind : public AsyncActionNode
 {
   bool *follow_right;
   geometry_msgs::msg::Twist *twist_msg;
-  float (*regions)[3];
+  float *regions;
   float max_vel;
   float dist_th;
 
 public:
   Rewind(const string &name) : AsyncActionNode(name, {}) {}
 
-  void init(bool *follow_right_, geometry_msgs::msg::Twist *twist_msg_, float (*regions_)[3], float max_vel_, float dist_th_ )
+  void init(bool *follow_right_, geometry_msgs::msg::Twist *twist_msg_, float *regions_, float max_vel_, float dist_th_ )
   {
     this->follow_right = follow_right_;
     this->twist_msg = twist_msg_;
@@ -298,7 +329,7 @@ public:
     for (int i = action_counter-2; i>0; i--){
 
       t_start = chrono::steady_clock::now();
-
+      
       if (history_actions[i] == "Find_Wall")
       {
         Find_Wall node("Find_Wall");
@@ -329,7 +360,7 @@ public:
         node.init(this->follow_right, this->twist_msg, this->regions, this->max_vel, this->dist_th);
         node.tick();
       }
-
+      
       while(chrono::duration<float>(chrono::steady_clock::now()- t_start).count() < history_times[i]);
     }
     action_counter = 0;
@@ -340,6 +371,12 @@ public:
 
     return NodeStatus::SUCCESS;
   }
+
+  void halt() override
+    {
+      this->twist_msg->linear.x = 0.0;
+      this->twist_msg->angular.z = 0.0;
+    }
 };
 
 class Exiting : public AsyncActionNode
@@ -364,13 +401,13 @@ public:
 class Side_Occupied : public AsyncActionNode
 {
   bool *follow_right;
-  float (*regions)[3];
+  float *regions;
   float dist_th;
 
 public:
   Side_Occupied(const string &name) : AsyncActionNode(name, {}) {}
 
-  void init(bool *follow_right_, float (*regions_)[3], float dist_th_)
+  void init(bool *follow_right_, float *regions_, float dist_th_)
   {
     this->follow_right = follow_right_;
     this->regions = regions_;
@@ -383,7 +420,7 @@ public:
 
     cout << "[ Is the side Occupied? ";
 
-    side = *(this->follow_right) ? *(this->regions[1]) : *(this->regions[2]);
+    side = *(this->follow_right) ? this->regions[1] : this->regions[2];
 
     if (side < this->dist_th)
     {
@@ -400,15 +437,15 @@ public:
   }  
 };
 
-class Collision_Detector : public AsyncActionNode
+class Collision_Detector : public ConditionNode
 {
-  float (*regions)[3];
+  float *regions;
   float dist_th;
 
 public:
-  Collision_Detector(const string &name) : AsyncActionNode(name, {}) {}
+  Collision_Detector(const string &name) : ConditionNode(name, {}) {}
 
-  void init(float (*regions_)[3], float dist_th_)
+  void init(float *regions_, float dist_th_)
   {
     this->regions = regions_;
     this->dist_th = dist_th_;
@@ -418,25 +455,22 @@ public:
   {
     // Return FAILURE if something appear in the frontal region
 
-    cout << "." << endl;
-
-    if (*(this->regions[0]) < this->dist_th*0.9)
+    if (this->regions[0] < this->dist_th*0.9)
     {
       cout << "[ Collision Detected ]" <<endl;
-
-      return NodeStatus::FAILURE;
+      return NodeStatus::SUCCESS;
     }
     else
     {
-      return NodeStatus::SUCCESS;
+      return NodeStatus::FAILURE;
     }
   }  
 };
 
-class Key_Detector : public AsyncActionNode
+class Key_Detector : public ConditionNode
 {
 public:
-  Key_Detector(const string &name) : AsyncActionNode(name, {}) {}
+  Key_Detector(const string &name) : ConditionNode(name, {}) {}
 
   bool inputAvailable()  
   { 
@@ -462,12 +496,12 @@ public:
     // Return FAILURE when a key is pressed
 
     if (inputAvailable()){
-    clean_stdin();
-    cout << "[ keyboard pressed ]" << endl; 
-    return NodeStatus::FAILURE;
+      clean_stdin();
+      cout << "[ keyboard pressed ]" << endl; 
+      return NodeStatus::SUCCESS;
     } 
     else{ 
-      return NodeStatus::SUCCESS;
+      return NodeStatus::FAILURE;
     }
   }  
 };

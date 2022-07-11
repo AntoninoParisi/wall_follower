@@ -46,7 +46,7 @@ public:
 
   Wall_Follower(const char *xml_tree) : rclcpp::Node("Wall_Follower")
   {
-    this->follow_right = false;
+    this->follow_right = true;
     this->lidar_len = 0;
     this->regions[0] = 1.0;
     this->regions[1] = 1.0;
@@ -71,35 +71,35 @@ public:
     for( auto& node: this->tree.nodes ){
       if( auto node_ = dynamic_cast<Find_Wall*>( node.get() ))
       {
-          node_->init(&(this->follow_right), &(this->twist_msg), &(this->regions), this->max_vel, this->dist_th);
+          node_->init(&(this->follow_right), &(this->twist_msg), this->regions, this->max_vel, this->dist_th);
       }
       if( auto node_ = dynamic_cast<Side_Choice*>( node.get() ))
       {
-          node_->init(&(this->follow_right), &(this->regions));
+          node_->init(&(this->follow_right), this->regions);
       }
       if( auto node_ = dynamic_cast<Align*>( node.get() ))
       {
-          node_->init(&(this->follow_right), &(this->twist_msg), &(this->regions), this->max_vel, this->dist_th);
+          node_->init(&(this->follow_right), &(this->twist_msg), this->regions, this->max_vel, this->dist_th);
       }
       if( auto node_ = dynamic_cast<Follow_Wall*>( node.get() ))
       {
-          node_->init(&(this->follow_right), &(this->twist_msg), &(this->regions), this->max_vel, this->dist_th);
+          node_->init(&(this->follow_right), &(this->twist_msg), this->regions, this->max_vel, this->dist_th);
       }
       if( auto node_ = dynamic_cast<Side_Occupied*>( node.get() ))
       {
-          node_->init(&(this->follow_right), &(this->regions), this->dist_th);
+          node_->init(&(this->follow_right), this->regions, this->dist_th);
       }
       if( auto node_ = dynamic_cast<Follow_Corner*>( node.get() ))
       {
-          node_->init(&(this->follow_right), &(this->twist_msg), &(this->regions), this->max_vel, this->dist_th);
+          node_->init(&(this->follow_right), &(this->twist_msg), this->regions, this->max_vel, this->dist_th);
       }
       if( auto node_ = dynamic_cast<Rewind*>( node.get() ))
       {
-          node_->init(&(this->follow_right), &(this->twist_msg), &(this->regions), this->max_vel, this->dist_th);
+          node_->init(&(this->follow_right), &(this->twist_msg), this->regions, this->max_vel, this->dist_th);
       }
       if( auto node_ = dynamic_cast<Collision_Detector*>( node.get() ))
       {
-          node_->init(&(this->regions), this->dist_th);
+          node_->init(this->regions, this->dist_th);
       }
       if( auto node_ = dynamic_cast<Turn*>( node.get() ))
       {
@@ -141,6 +141,8 @@ private:
     this->regions[0] = min(*min_element(reg_c.begin(), reg_c.end()), 10.0f);
     this->regions[1] = min(*min_element(reg_r.begin(), reg_r.end()), 10.0f);
     this->regions[2] = min(*min_element(reg_l.begin(), reg_l.end()), 10.0f);
+
+    //cout << this->regions[2] << " ! " << this->regions[0] << " ! " << this->regions[1] << endl;
   }
 
   void direction_callback(const std_msgs::msg::Bool::SharedPtr _msg)

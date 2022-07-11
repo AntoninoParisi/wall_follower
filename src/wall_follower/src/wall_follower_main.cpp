@@ -10,22 +10,22 @@
 
 
 
-// WhileDoElse VERSION (non pare dare vantaggi, e non è istantaneo)
-
 const char *xml_tree = R"(
                         <root main_tree_to_execute="Main_Tree">
-                            <BehaviorTree ID="Main_Tree">                                                                    
-                              <WhileDoElse>
-                                <Key_Detector name="Is key NOT detected?"/>
-                                <SubTree ID="Wall_Follower"/>
-                                <Sequence name ="Rewind_Seq">
-                                  <Turn name="Turn"/> 
-                                  <Rewind name="Rewind"/>
+                            <BehaviorTree ID="Main_Tree"> 
+                              <ReactiveFallback> 
+
+                                <Sequence name ="Key_Seq">
+                                  <Key_Detector name="Is key detected?"/>
+                                  <SubTree ID="Rewind_Subtree"/>
                                 </Sequence>
-                              </WhileDoElse>                                                                               	                                                         
+                                
+                                <SubTree ID="Wall_Follower_Subtree"/>
+                                
+                              </ReactiveFallback>
                             </BehaviorTree>
 
-                            <BehaviorTree ID="Wall_Follower">
+                            <BehaviorTree ID="Wall_Follower_Subtree">
                                 <Sequence name="Wall_Follower_Seq">
                                   <Find_Wall name="Find wall"/>	
                                   <Side_Choice name="Side choice"/>                              
@@ -34,21 +34,41 @@ const char *xml_tree = R"(
                                   <Follow_Corner name="Follow a corner"/>                               
                                 </Sequence> 
                             </BehaviorTree> 
+
+                            <BehaviorTree ID="Rewind_Subtree">
+                                <Sequence name ="Rewind_Seq">
+                                  <Turn name="Turn"/> 
+                                  <Rewind name="Rewind"/>
+                                </Sequence> 
+                            </BehaviorTree>
+
                         </root>
-                        )";    
+                        )"; 
+
+
 
 /*
 const char *xml_tree = R"(
-                        <root main_tree_to_execute="MainTree">
-                            <BehaviorTree ID="MainTree">                                                                    
-                              <Parallel success_threshold="3">
-                                <SubTree ID="Key_Handler"/>
-                                <SubTree ID="Collision_Handler"/>
-                                <SubTree ID="Wall_Follower"/>
-                              </Parallel>                                                                               	                                                         
+                        <root main_tree_to_execute="Main_Tree">
+                            <BehaviorTree ID="Main_Tree"> 
+                              <ReactiveFallback> 
+
+                                <Sequence name ="Collision_Seq">
+                                  <Collision_Detector name="Is collision detected?"/> 
+                                  <Turn name="Turn"/>
+                                </Sequence>
+
+                                <Sequence name ="Key_Seq">
+                                  <Key_Detector name="Is key detected?"/>
+                                  <SubTree ID="Rewind_Subtree"/>
+                                </Sequence>
+                                
+                                <SubTree ID="Wall_Follower_Subtree"/>
+                                
+                              </ReactiveFallback>
                             </BehaviorTree>
 
-                            <BehaviorTree ID="Wall_Follower">
+                            <BehaviorTree ID="Wall_Follower_Subtree">
                                 <Sequence name="Wall_Follower_Seq">
                                   <Find_Wall name="Find wall"/>	
                                   <Side_Choice name="Side choice"/>                              
@@ -58,71 +78,64 @@ const char *xml_tree = R"(
                                 </Sequence> 
                             </BehaviorTree> 
 
-                            <BehaviorTree ID="Collision_Handler">
-                              <Fallback name="Collision_Handler_Seq">
-                                <Collision_Detector name="Is collision NOT detected?"/> 
-                                <Turn name="Turn"/> 
-                              </Fallback>  
-                            </BehaviorTree> 
-
-                            <BehaviorTree ID="Key_Handler">
-                              <Fallback name="Key_Handler_Seq">
-                                <Key_Detector name="Is collision NOT detected?"/> 
+                            <BehaviorTree ID="Rewind_Subtree">
                                 <Sequence name ="Rewind_Seq">
                                   <Turn name="Turn"/> 
                                   <Rewind name="Rewind"/>
-                                </Sequence>  
-                              </Fallback>  
+                                </Sequence> 
                             </BehaviorTree>
 
                         </root>
                         )";    
+*/
 
+/*
 
+//THIS WORKS WITH INVERTED CONDITIONS
 const char *xml_tree = R"(
-                        <root main_tree_to_execute="MainTree">
-                            <BehaviorTree ID="MainTree">                                                                    
-                              <Fallback name="Main_Sequence">
-                                <SubTree ID="Primary_Task"/>
-                                <SubTree ID="Secondary_Task"/>
-                              </Fallback>                                                                               	                                                         
+                        <root main_tree_to_execute="Main_Tree">
+                            <BehaviorTree ID="Main_Tree"> 
+                              <Fallback> 
+
+                                <ReactiveSequence name ="Wall_Follower_Seq">
+                                  <Collision_Detector name="Is collision NOT detected?"/> 
+                                  <Key_Detector name="Is key NOT detected?"/>
+                                  <SubTree ID="Wall_Follower_Subtree"/>
+                                </ReactiveSequence>
+                                
+                                <SubTree ID="Rewind_Subtree"/>
+
+                              </Fallback>
                             </BehaviorTree>
 
-                            <BehaviorTree ID="Primary_Task">
-                              <Sequence>                                     
-                                <Wait_Key name="Is key NOT pressed?"/>  
-                                <Collision_Detect name="Is collision NOT detected?"/>                                    
-                                <SubTree ID="Wall_Follower"/>
-                              </Sequence>
-                            </BehaviorTree>
-
-                            <BehaviorTree ID="Wall_Follower">
+                            <BehaviorTree ID="Wall_Follower_Subtree">
                                 <Sequence name="Wall_Follower_Seq">
                                   <Find_Wall name="Find wall"/>	
                                   <Side_Choice name="Side choice"/>                              
                                   <Align name="Align"/>
                                   <Follow_Wall name="Follow a wall"/> 
-                                  <SubTree ID="Corner_Handler"/>                               
+                                  <Follow_Corner name="Follow a corner"/>                               
                                 </Sequence> 
                             </BehaviorTree> 
 
-                            <BehaviorTree ID="Corner_Handler">
-                              <Fallback name="Corner_Handler_Seq">
-                                <Side_Occupied name="Is the side Occupied?"/>
-                                <Follow_Corner name="Follow a corner"/> 
-                              </Fallback>  
-                            </BehaviorTree> 
+                            <BehaviorTree ID="Rewind_Subtree">
+                               <Fallback>
+                                <ReactiveSequence name ="Wall_Follower_Seq">
+                                  <Collision_Detector name="Is collision NOT detected?"/> 
+                                  <Sequence name ="Rewind_Seq">
+                                    <Turn name="Turn"/> 
+                                    <Rewind name="Rewind"/>
+                                  </Sequence>
+                                </ReactiveSequence>
 
-                            <BehaviorTree ID="Secondary_Task">
-                              <Sequence name="Rewind_Sequence_Seq">
                                 <Turn name="Turn"/>
-                                <Rewind name="Rewind"/> 
-                              </Sequence>  
+                              </Fallback>  
                             </BehaviorTree>
 
                         </root>
-                        )";    
-*/   
+                        )"; 
+*/
+   
 
 /*
   <BehaviorTree ID="Corner_Handler">
