@@ -34,7 +34,7 @@ private:
   void timer_callback()
   {
     char ch;
-    cout << "per cambiare direzione gigitare L o R / altro taso == REWIND \n" << endl;
+    cout << "per cambiare direzione digitare L o R / altro taso == REWIND \n" << endl;
     cin >> ch;
 
     cout << "CHAR : " << (char) ch ;

@@ -8,7 +8,7 @@
  * Actions and Conditions.
  */
 
-/*
+
 
 // WhileDoElse VERSION (non pare dare vantaggi, e non è istantaneo)
 
@@ -44,8 +44,8 @@ const char *xml_tree = R"(
 
                         </root>
                         )";    
-*/
 
+/*
 const char *xml_tree = R"(
                         <root main_tree_to_execute="MainTree">
                             <BehaviorTree ID="MainTree">                                                                    
@@ -62,15 +62,8 @@ const char *xml_tree = R"(
                                   <Side_Choice name="Side choice"/>                              
                                   <Align name="Align"/>
                                   <Follow_Wall name="Follow a wall"/> 
-                                  <SubTree ID="Corner_Handler"/>                               
+                                  <Follow_Corner name="Follow a corner"/>                               
                                 </Sequence> 
-                            </BehaviorTree> 
-
-                            <BehaviorTree ID="Corner_Handler">
-                              <Fallback name="Corner_Handler_Seq">
-                                <Side_Occupied name="Is the side Occupied?"/>
-                                <Follow_Corner name="Follow a corner"/> 
-                              </Fallback>  
                             </BehaviorTree> 
 
                             <BehaviorTree ID="Collision_Handler">
@@ -92,7 +85,7 @@ const char *xml_tree = R"(
 
                         </root>
                         )";    
-
+*/
 /*
 const char *xml_tree = R"(
                         <root main_tree_to_execute="MainTree">

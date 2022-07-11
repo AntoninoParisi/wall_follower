@@ -26,16 +26,12 @@ public:
   // VARIABILI DI CLASSE
 
   bool follow_right;
-  // bool *fr;
   vector<float> lidar;
   int lidar_len;
   float regions[3];
   float dist_th;
   float max_vel;
-  string history_actions[100];  
-  float history_times[100];
-
-
+  
   Tree tree;
 
   geometry_msgs::msg::Twist twist_msg;
@@ -51,7 +47,6 @@ public:
   Wall_Follower(const char *xml_tree) : rclcpp::Node("Wall_Follower")
   {
     this->follow_right = false;
-    // *(this->fr) = false; crash of the program while running without errors
     this->lidar_len = 0;
     this->regions[0] = 1.0;
     this->regions[1] = 1.0;
@@ -76,39 +71,39 @@ public:
     for( auto& node: this->tree.nodes ){
       if( auto find_wall = dynamic_cast<Find_Wall*>( node.get() ))
       {
-          find_wall->init(&(this->twist_msg), this->regions, this->max_vel, this->dist_th, this->history_actions, this->history_times);
+          find_wall->init(&(this->twist_msg), &(this->regions), this->max_vel, this->dist_th);
       }
       if( auto side_choice = dynamic_cast<Side_Choice*>( node.get() ))
       {
-          side_choice->init(&(this->follow_right), (this->regions));
+          side_choice->init(&(this->follow_right), &(this->regions));
       }
       if( auto align = dynamic_cast<Align*>( node.get() ))
       {
-          align->init(&(this->follow_right), &(this->twist_msg), this->regions, this->max_vel, this->dist_th, this->history_actions, this->history_times);
+          align->init(&(this->follow_right), &(this->twist_msg), &(this->regions), this->max_vel, this->dist_th);
       }
       if( auto follow_wall = dynamic_cast<Follow_Wall*>( node.get() ))
       {
-          follow_wall->init(&(this->follow_right), &(this->twist_msg), this->regions, this->max_vel, this->dist_th, this->history_actions, this->history_times);
+          follow_wall->init(&(this->follow_right), &(this->twist_msg), &(this->regions), this->max_vel, this->dist_th);
       }
       if( auto side_occupied = dynamic_cast<Side_Occupied*>( node.get() ))
       {
-          side_occupied->init(&(this->follow_right), this->regions, this->dist_th);
+          side_occupied->init(&(this->follow_right), &(this->regions), this->dist_th);
       }
       if( auto follow_corner = dynamic_cast<Follow_Corner*>( node.get() ))
       {
-          follow_corner->init(&(this->follow_right), &(this->twist_msg), this->regions, this->max_vel, this->dist_th, this->history_actions, this->history_times);
+          follow_corner->init(&(this->follow_right), &(this->twist_msg), &(this->regions), this->max_vel, this->dist_th);
       }
       if( auto rewind = dynamic_cast<Rewind*>( node.get() ))
       {
-          rewind->init(&(this->follow_right), &(this->twist_msg), this->dist_th, this->history_actions, this->history_times);
+          rewind->init(&(this->follow_right), &(this->twist_msg), &(this->regions), this->max_vel, this->dist_th);
       }
       if( auto collision_detect = dynamic_cast<Collision_Detector*>( node.get() ))
       {
-          collision_detect->init(this->regions, this->dist_th);
+          collision_detect->init(&(this->regions), this->dist_th);
       }
       if( auto turn = dynamic_cast<Turn*>( node.get() ))
       {
-          turn->init(&(this->twist_msg), this->history_actions, this->history_times);
+          turn->init(&(this->twist_msg));
       }
     }
 
