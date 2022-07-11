@@ -69,41 +69,41 @@ public:
     this->tree = factory.createTreeFromText(xml_tree);
 
     for( auto& node: this->tree.nodes ){
-      if( auto find_wall = dynamic_cast<Find_Wall*>( node.get() ))
+      if( auto node_ = dynamic_cast<Find_Wall*>( node.get() ))
       {
-          find_wall->init(&(this->twist_msg), &(this->regions), this->max_vel, this->dist_th);
+          node_->init(&(this->follow_right), &(this->twist_msg), &(this->regions), this->max_vel, this->dist_th);
       }
-      if( auto side_choice = dynamic_cast<Side_Choice*>( node.get() ))
+      if( auto node_ = dynamic_cast<Side_Choice*>( node.get() ))
       {
-          side_choice->init(&(this->follow_right), &(this->regions));
+          node_->init(&(this->follow_right), &(this->regions));
       }
-      if( auto align = dynamic_cast<Align*>( node.get() ))
+      if( auto node_ = dynamic_cast<Align*>( node.get() ))
       {
-          align->init(&(this->follow_right), &(this->twist_msg), &(this->regions), this->max_vel, this->dist_th);
+          node_->init(&(this->follow_right), &(this->twist_msg), &(this->regions), this->max_vel, this->dist_th);
       }
-      if( auto follow_wall = dynamic_cast<Follow_Wall*>( node.get() ))
+      if( auto node_ = dynamic_cast<Follow_Wall*>( node.get() ))
       {
-          follow_wall->init(&(this->follow_right), &(this->twist_msg), &(this->regions), this->max_vel, this->dist_th);
+          node_->init(&(this->follow_right), &(this->twist_msg), &(this->regions), this->max_vel, this->dist_th);
       }
-      if( auto side_occupied = dynamic_cast<Side_Occupied*>( node.get() ))
+      if( auto node_ = dynamic_cast<Side_Occupied*>( node.get() ))
       {
-          side_occupied->init(&(this->follow_right), &(this->regions), this->dist_th);
+          node_->init(&(this->follow_right), &(this->regions), this->dist_th);
       }
-      if( auto follow_corner = dynamic_cast<Follow_Corner*>( node.get() ))
+      if( auto node_ = dynamic_cast<Follow_Corner*>( node.get() ))
       {
-          follow_corner->init(&(this->follow_right), &(this->twist_msg), &(this->regions), this->max_vel, this->dist_th);
+          node_->init(&(this->follow_right), &(this->twist_msg), &(this->regions), this->max_vel, this->dist_th);
       }
-      if( auto rewind = dynamic_cast<Rewind*>( node.get() ))
+      if( auto node_ = dynamic_cast<Rewind*>( node.get() ))
       {
-          rewind->init(&(this->follow_right), &(this->twist_msg), &(this->regions), this->max_vel, this->dist_th);
+          node_->init(&(this->follow_right), &(this->twist_msg), &(this->regions), this->max_vel, this->dist_th);
       }
-      if( auto collision_detect = dynamic_cast<Collision_Detector*>( node.get() ))
+      if( auto node_ = dynamic_cast<Collision_Detector*>( node.get() ))
       {
-          collision_detect->init(&(this->regions), this->dist_th);
+          node_->init(&(this->regions), this->dist_th);
       }
-      if( auto turn = dynamic_cast<Turn*>( node.get() ))
+      if( auto node_ = dynamic_cast<Turn*>( node.get() ))
       {
-          turn->init(&(this->twist_msg));
+          node_->init(&(this->twist_msg));
       }
     }
 

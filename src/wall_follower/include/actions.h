@@ -22,13 +22,14 @@ float side;
 int action_counter=0;
 chrono::steady_clock::time_point t_start;
 
-string history_actions[100];  
-float history_times[100];
+string history_actions[1000];  
+float history_times[1000];
 
 // history_actions = "Find_Wall";
 
 class Find_Wall : public AsyncActionNode
 {
+  bool *follow_right;
   geometry_msgs::msg::Twist *twist_msg;
   float (*regions)[3];
   float max_vel;
@@ -37,8 +38,9 @@ class Find_Wall : public AsyncActionNode
 public:
   Find_Wall(const string &name) : AsyncActionNode(name, {}) {}
 
-  void init(geometry_msgs::msg::Twist *twist_msg_, float (*regions_)[3], float max_vel_, float dist_th_ )
+  void init(bool *follow_right_, geometry_msgs::msg::Twist *twist_msg_, float (*regions_)[3], float max_vel_, float dist_th_ )
   {
+    this->follow_right = follow_right_;
     this->twist_msg = twist_msg_;
     this->regions = regions_;
     this->max_vel = max_vel_;
@@ -56,9 +58,11 @@ public:
     while (*(this->regions[0]) > this->dist_th)
     {
       this->twist_msg->linear.x = (*(this->regions[0]) * *(this->regions[0]) < this->max_vel) ? *(this->regions[0]) * *(this->regions[0]) : this->max_vel;
+      this->twist_msg->angular.z = (*(this->follow_right)) ? -0.15 : 0.15;;
     }
 
     this->twist_msg->linear.x = 0.0;
+    this->twist_msg->angular.z = 0.0;
 
     history_actions[action_counter] = "Find_Wall";
     history_times[action_counter++] = chrono::duration<float>(chrono::steady_clock::now()- t_start).count();
@@ -98,7 +102,6 @@ public:
 
 class Align : public AsyncActionNode
 {
-
   bool *follow_right;
   geometry_msgs::msg::Twist *twist_msg;
   float (*regions)[3];
@@ -131,8 +134,6 @@ public:
     }
     
     this->twist_msg->angular.z = 0.0;
-
-    cout << history_actions[action_counter] << endl;
 
     history_actions[action_counter] = "Align";
     history_times[action_counter++] = chrono::duration<float>(chrono::steady_clock::now()- t_start).count();
@@ -290,20 +291,18 @@ public:
   {
     //repeat all action in history
 
-    cout << "[ Rewind ]" << endl;
+    cout << "[ Starting Rewind ... ]" << endl;
 
-    *this->follow_right = *(this->follow_right) ? false : true;
+    *(this->follow_right) = (*(this->follow_right) )? false : true;
 
     for (int i = action_counter-2; i>0; i--){
-      cout << history_actions[i] << "\t|\t" << history_times[i] <<endl;
+
       t_start = chrono::steady_clock::now();
-      // while(chrono::duration<float>(chrono::steady_clock::now()- t_start).count() < history_times[i]);
-      //TODO: Execute the action
 
       if (history_actions[i] == "Find_Wall")
       {
         Find_Wall node("Find_Wall");
-        node.init(this->twist_msg, this->regions, this->max_vel, this->dist_th);
+        node.init(this->follow_right, this->twist_msg, this->regions, this->max_vel, this->dist_th);
         node.tick();
       }
       else if (history_actions[i] == "Side_Choice")
@@ -330,11 +329,14 @@ public:
         node.init(this->follow_right, this->twist_msg, this->regions, this->max_vel, this->dist_th);
         node.tick();
       }
-      
+
+      while(chrono::duration<float>(chrono::steady_clock::now()- t_start).count() < history_times[i]);
     }
     action_counter = 0;
 
-    *this->follow_right = *(this->follow_right) ? false : true;
+    *(this->follow_right) = (*(this->follow_right) )? false : true;
+
+    cout << "[ ... Rewind Complete ]" << endl;
 
     return NodeStatus::SUCCESS;
   }
