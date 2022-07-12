@@ -19,9 +19,6 @@ using namespace BT;
 
 int tick_c = 0;
 
-int slice_dim, mid;
-float slim_side;
-
 class Wall_Follower : public rclcpp::Node
 {
 public:
@@ -109,11 +106,6 @@ public:
         "/scan",
         rclcpp::QoS(rclcpp::SystemDefaultsQoS()),
         bind(&Wall_Follower::laser_callback, this, placeholders::_1));
-    
-    this->dir_subscription_ = this->create_subscription<std_msgs::msg::Bool>(
-        "/direction",
-        rclcpp::QoS(rclcpp::SystemDefaultsQoS()),
-        bind(&Wall_Follower::direction_callback, this, placeholders::_1));
 
     this->twist_msg = geometry_msgs::msg::Twist();
     this->timer_ = this->create_wall_timer(50ms, std::bind(&Wall_Follower::control_loop, this));
@@ -125,26 +117,21 @@ private:
     this->lidar = _msg->ranges;
     this->lidar_len = lidar.size();
 
-    slice_dim = floor(this->lidar_len / 12);  //half of the frontal region
-    mid = floor(this->lidar_len / 2) - floor(this->lidar_len / 4);
+    int front_dim = floor(this->lidar_len / 12);  //half of it
+    int limit = floor(this->lidar_len / 4);
 
-    vector<float> reg_c1(lidar.begin(), lidar.begin() + slice_dim);
-    vector<float> reg_c2(lidar.end() - slice_dim, lidar.end());
+    vector<float> reg_c1(lidar.begin(), lidar.begin() + front_dim);
+    vector<float> reg_c2(lidar.end() - front_dim, lidar.end());
     vector<float> reg_c = reg_c1;
     reg_c.insert(reg_c.end(), reg_c2.begin(), reg_c2.end());
-    vector<float> reg_l(lidar.begin() + slice_dim, lidar.begin() + mid);
-    vector<float> reg_r(lidar.end() - mid, lidar.end() - slice_dim);
+    vector<float> reg_l(lidar.begin() + front_dim, lidar.begin() + limit);
+    vector<float> reg_r(lidar.end() - limit, lidar.end() - front_dim);
 
     this->regions[0] = min(*min_element(reg_c.begin(), reg_c.end()), 10.0f);
     this->regions[1] = min(*min_element(reg_r.begin(), reg_r.end()), 10.0f);
     this->regions[2] = min(*min_element(reg_l.begin(), reg_l.end()), 10.0f);
 
     //cout << this->regions[2] << " ! " << this->regions[0] << " ! " << this->regions[1] << endl;
-  }
-
-  void direction_callback(const std_msgs::msg::Bool::SharedPtr _msg)
-  {
-    this->follow_right = _msg->data;
   }
 
   void control_loop()

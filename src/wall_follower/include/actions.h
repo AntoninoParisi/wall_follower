@@ -275,7 +275,7 @@ public:
 
     t_start = chrono::steady_clock::now();
     
-    int angle = 180;
+    int angle = 180; 
     int time_ = 1;
     float side = 1;
 
@@ -322,8 +322,6 @@ public:
     //repeat all action in history
 
     cout << "[ Starting Rewind ... ]" << endl;
-
-    cout << action_counter << endl;
 
     if(action_counter > 1){
 

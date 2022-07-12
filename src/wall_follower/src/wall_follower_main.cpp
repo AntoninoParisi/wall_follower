@@ -61,15 +61,6 @@ const char *xml_tree = R"(
                         </root>
                         )";    
 
-/*
-  <BehaviorTree ID="Corner_Handler">
-    <Fallback name="Corner_Handler_Seq">
-      <Side_Occupied name="Is the side Occupied?"/>
-      <Follow_Corner name="Follow a corner"/> 
-    </Fallback>  
-  </BehaviorTree>
-*/
-
 
 /*
 <RetryUntilSuccessful num_attempts="999">
