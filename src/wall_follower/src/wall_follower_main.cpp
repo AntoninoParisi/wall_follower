@@ -47,14 +47,14 @@ const char *xml_tree = R"(
 
                             <BehaviorTree ID="Rewind_Subtree">
                                 <Sequence name ="Rewind_Seq">
-                                  <Turn name="Turn"/>
+                                  <Turn name="Turn" angle="180" time="10" direction="clockwise"/>
                                   <Rewind name="Rewind"/>
                                 </Sequence> 
                             </BehaviorTree>
 
                             <BehaviorTree ID="Safety_Subtree">
                               <Sequence name ="Safety_Seq">
-                                <Turn name="Turn"/>
+                                <Turn name="Turn" angle="90" time="2" direction="anticlockwise"/>
                               </Sequence> 
                             </BehaviorTree>
 

@@ -62,8 +62,7 @@ public:
     factory.registerNodeType<Key_Detector>("Key_Detector");
     factory.registerNodeType<Rewind>("Rewind"); 
     factory.registerNodeType<Collision_Detector>("Collision_Detector"); 
-    factory.registerNodeType<Turn>("Turn"); 
-    factory.registerNodeType<Exiting>("Exiting"); 
+    factory.registerNodeType<Turn>("Turn", {InputPort<string>("angle"), InputPort<string>("time"), InputPort<string>("direction") }); 
     this->tree = factory.createTreeFromText(xml_tree);
 
     for( auto& node: this->tree.nodes ){

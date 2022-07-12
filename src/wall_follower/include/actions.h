@@ -258,9 +258,8 @@ class Turn : public AsyncActionNode
 {
   geometry_msgs::msg::Twist *twist_msg;
 
-
 public:
-  Turn(const string &name) : AsyncActionNode(name, {}) {}
+  Turn(const string &name, const NodeConfiguration& config) : AsyncActionNode(name, config) {}
 
   void init(geometry_msgs::msg::Twist *twist_msg_ )
   {
@@ -272,21 +271,17 @@ public:
     // Go in circle until a wall appears in the side to follow region (and a wall in the front region is detected)
 
     cout << "[ Turning ]" << endl;
-
-    t_start = chrono::steady_clock::now();
-    
-    int angle = 180; 
-    int time_ = 1;
-    float side = 1;
+ 
+    int angle = stoi(getInput<string>("angle").value()); 
+    float time_ = stof(getInput<string>("time").value()); 
+    int direction= (getInput<string>("direction").value() == "clockwise")? -1 : 1;
 
     while(chrono::duration<float>(chrono::steady_clock::now()- t_start).count() < time_){
       this->twist_msg->linear.x = 0.0;        
-      this->twist_msg->angular.z = side*(angle*3.14/180)/time_;
+      this->twist_msg->angular.z = direction*(angle*3.14/180)/time_;
     }
     this->twist_msg->angular.z = 0.0;
   
-    history_actions[action_counter] = "Turn";
-    history_times[action_counter++] = chrono::duration<float>(chrono::steady_clock::now()- t_start).count();
     return NodeStatus::SUCCESS;
   }
 
@@ -361,12 +356,6 @@ public:
           node.init(this->follow_right, this->twist_msg, this->regions, this->max_vel, this->dist_th);
           node.tick();
         }
-        else if (history_actions[i] == "Turn")
-        {
-          Turn node("Turn");
-          node.init(this->twist_msg);
-          node.tick();
-        }
         while(chrono::duration<float>(chrono::steady_clock::now()- t_start).count() < history_times[i]);
       }
       
@@ -389,23 +378,6 @@ public:
       this->twist_msg->angular.z = 0.0;
     }
 };
-
-class Exiting : public AsyncActionNode
-{
-public:
-  Exiting(const string &name) : AsyncActionNode(name, {}) {}
-
-  NodeStatus tick() override
-  {
-    // Tool to advise the running reach the final node on the tree
-
-    cout << "[ Exiting ]" << endl;
-
-    return NodeStatus::SUCCESS;
-  }
-};
-
-
 
 // CONDITIONS
 
