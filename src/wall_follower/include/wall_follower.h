@@ -17,6 +17,8 @@
 using namespace std;
 using namespace BT;
 
+int tick_c = 0;
+
 int slice_dim, mid;
 float slim_side;
 
@@ -51,15 +53,14 @@ public:
     this->regions[0] = 1.0;
     this->regions[1] = 1.0;
     this->regions[2] = 1.0;
-    this->dist_th = 0.4;
-    this->max_vel = 1.0;
+    this->dist_th = 0.3;
+    this->max_vel = 0.3;
 
     BehaviorTreeFactory factory;
     factory.registerNodeType<Find_Wall>("Find_Wall");
     factory.registerNodeType<Side_Choice>("Side_Choice");
     factory.registerNodeType<Align>("Align");
     factory.registerNodeType<Follow_Wall>("Follow_Wall");
-    factory.registerNodeType<Side_Occupied>("Side_Occupied");
     factory.registerNodeType<Follow_Corner>("Follow_Corner");
     factory.registerNodeType<Key_Detector>("Key_Detector");
     factory.registerNodeType<Rewind>("Rewind"); 
@@ -84,10 +85,6 @@ public:
       if( auto node_ = dynamic_cast<Follow_Wall*>( node.get() ))
       {
           node_->init(&(this->follow_right), &(this->twist_msg), this->regions, this->max_vel, this->dist_th);
-      }
-      if( auto node_ = dynamic_cast<Side_Occupied*>( node.get() ))
-      {
-          node_->init(&(this->follow_right), this->regions, this->dist_th);
       }
       if( auto node_ = dynamic_cast<Follow_Corner*>( node.get() ))
       {
@@ -154,7 +151,8 @@ private:
   {
     this->tree.tickRoot();
     publisher_->publish(twist_msg);
-    //cout << "." << endl;
+
+    // cout << "\n--- executeTick() " << tick_c++ << " ---" << endl;
   }
 };
 

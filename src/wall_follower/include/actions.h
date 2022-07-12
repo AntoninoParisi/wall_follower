@@ -50,7 +50,7 @@ public:
   {
     // Go straight until a wall in front region is detected
 
-    // cout << "[ Finding a wall ]" << endl;
+    cout << "[ Finding a wall ]" << endl;
 
     t_start = chrono::steady_clock::now();
     
@@ -97,12 +97,12 @@ public:
 
     *this->follow_right = (this->regions[1] < this->regions[2]) ? true : false;
     
-    /*
+    
     if (*this->follow_right)
       cout << "[ Follow right ]" << endl; // THE WALL IS ON THE ROBOT RIGHT
     else
       cout << "[ Follow left ]" << endl; // THE WALL IS ON THE ROBOT LEFT
-    */
+    
     return NodeStatus::SUCCESS;
   }
 };
@@ -131,7 +131,7 @@ public:
   {
     // Turn, left or right according to the chosen side, until the front region is empty
 
-    // cout << "[ Aligning ]" << endl;
+    cout << "[ Aligning ]" << endl;
 
     t_start = chrono::steady_clock::now();
     
@@ -178,7 +178,7 @@ public:
   {
     // Go straight until a wall in the front region is detected or the side to follow region is empty
 
-    // cout << "[ Following a wall ]" << endl;
+    cout << "[ Following a wall ]" << endl;
 
     t_start = chrono::steady_clock::now();
     
@@ -229,7 +229,7 @@ public:
   {
     // Follow a  circle path until a wall appears in the side to follow region (and a wall in the front region is detected)
 
-    // cout << "[ Following a corner ]" << endl;
+    cout << "[ Following a corner ]" << endl;
 
     t_start = chrono::steady_clock::now();
     
@@ -323,51 +323,65 @@ public:
 
     cout << "[ Starting Rewind ... ]" << endl;
 
-    *(this->follow_right) = (*(this->follow_right) )? false : true;
+    cout << action_counter << endl;
 
-    for (int i = action_counter-2; i>0; i--){
+    if(action_counter > 1){
 
-      t_start = chrono::steady_clock::now();
+      *(this->follow_right) = (*(this->follow_right) )? false : true;
+
+      for (int i = action_counter-1; i>0; i--){
+
+        t_start = chrono::steady_clock::now();
+        
+        if (history_actions[i] == "Find_Wall")
+        {
+          Find_Wall node("Find_Wall");
+          node.init(this->follow_right, this->twist_msg, this->regions, this->max_vel, this->dist_th);
+          node.tick();
+        }
+        else if (history_actions[i] == "Side_Choice")
+        {
+          Side_Choice node("Side_Choice");
+          node.init(this->follow_right, this->regions);
+          node.tick();
+        }
+        else if (history_actions[i] == "Align")
+        {
+          Align node("Align");
+          node.init(this->follow_right, this->twist_msg, this->regions, this->max_vel, this->dist_th);
+          node.tick();
+        }
+        else if (history_actions[i] == "Follow_Wall")
+        {
+          Follow_Wall node("Follow_Wall");
+          node.init(this->follow_right, this->twist_msg, this->regions, this->max_vel, this->dist_th);
+          node.tick();
+        }
+        else if (history_actions[i] == "Follow_Corner")
+        {
+          Follow_Corner node("Follow_Corner");
+          node.init(this->follow_right, this->twist_msg, this->regions, this->max_vel, this->dist_th);
+          node.tick();
+        }
+        else if (history_actions[i] == "Turn")
+        {
+          Turn node("Turn");
+          node.init(this->twist_msg);
+          node.tick();
+        }
+        while(chrono::duration<float>(chrono::steady_clock::now()- t_start).count() < history_times[i]);
+      }
       
-      if (history_actions[i] == "Find_Wall")
-      {
-        Find_Wall node("Find_Wall");
-        node.init(this->follow_right, this->twist_msg, this->regions, this->max_vel, this->dist_th);
-        node.tick();
-      }
-      else if (history_actions[i] == "Side_Choice")
-      {
-        Side_Choice node("Side_Choice");
-        node.init(this->follow_right, this->regions);
-        node.tick();
-      }
-      else if (history_actions[i] == "Align")
-      {
-        Align node("Align");
-        node.init(this->follow_right, this->twist_msg, this->regions, this->max_vel, this->dist_th);
-        node.tick();
-      }
-      else if (history_actions[i] == "Follow_Wall")
-      {
-        Follow_Wall node("Follow_Wall");
-        node.init(this->follow_right, this->twist_msg, this->regions, this->max_vel, this->dist_th);
-        node.tick();
-      }
-      else if (history_actions[i] == "Follow_Corner")
-      {
-        Follow_Corner node("Follow_Corner");
-        node.init(this->follow_right, this->twist_msg, this->regions, this->max_vel, this->dist_th);
-        node.tick();
-      }
-      
-      while(chrono::duration<float>(chrono::steady_clock::now()- t_start).count() < history_times[i]);
+      *(this->follow_right) = (*(this->follow_right) )? false : true;
+    
+      cout << "[ ... Rewind Complete ]" << endl;
+
     }
+    else{
+      cout << "[ ERROR: No action stored in history ]" << endl;
+    }
+
     action_counter = 0;
-
-    *(this->follow_right) = (*(this->follow_right) )? false : true;
-
-    cout << "[ ... Rewind Complete ]" << endl;
-
     return NodeStatus::SUCCESS;
   }
 
@@ -397,45 +411,6 @@ public:
 
 // CONDITIONS
 
-class Side_Occupied : public AsyncActionNode
-{
-  bool *follow_right;
-  float *regions;
-  float dist_th;
-
-public:
-  Side_Occupied(const string &name) : AsyncActionNode(name, {}) {}
-
-  void init(bool *follow_right_, float *regions_, float dist_th_)
-  {
-    this->follow_right = follow_right_;
-    this->regions = regions_;
-    this->dist_th = dist_th_;
-  }
-
-  NodeStatus tick() override
-  {
-    // Check if the side to follow is empty (If it is the follow fall ends because a slim wall)
-
-    cout << "[ Is the side Occupied? ";
-
-    side = *(this->follow_right) ? this->regions[1] : this->regions[2];
-
-    if (side < this->dist_th)
-    {
-      cout << "Yes ]" <<endl;
-
-      return NodeStatus::SUCCESS;
-    }
-    else
-    {
-      cout << "No ]" <<endl;
-
-      return NodeStatus::FAILURE;
-    }
-  }  
-};
-
 class Collision_Detector : public ConditionNode
 {
   float *regions;
@@ -454,13 +429,18 @@ public:
   {
     // Return FAILURE if something appear in the frontal region
 
-    if (this->regions[0] < this->dist_th*0.9)
+    // cout << "Is a collision detected?";
+    // cout << " (" << this->regions[0] << " < " << this->dist_th*0.7 << " ?) ";
+
+    if (this->regions[0] < this->dist_th*0.7)
     {
-      cout << "[ Collision Detected ]" <<endl;
+      // cout << " YES " <<endl;
+      cout << "[ collision detected ]" << endl;
       return NodeStatus::SUCCESS;
     }
     else
     {
+      // cout << " NO " <<endl;
       return NodeStatus::FAILURE;
     }
   }  
@@ -494,12 +474,17 @@ public:
   {
     // Return FAILURE when a key is pressed
 
+    // cout << "Is a key detected?";
+
     if (inputAvailable()){
       clean_stdin();
+
+      // cout << " YES " <<endl;
       cout << "[ keyboard pressed ]" << endl; 
       return NodeStatus::SUCCESS;
     } 
     else{ 
+      // cout << " NO " <<endl;
       return NodeStatus::FAILURE;
     }
   }  
