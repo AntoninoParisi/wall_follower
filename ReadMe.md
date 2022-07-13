@@ -5,7 +5,7 @@ This repository contains the project based on the Behavior tree library (https:/
 
 
 # Goals
-- Make an high level FSM controller to find a wall, and follow it
+- Make an high level controller based on a Behavior Tree to find a wall, and follow it
 - Implement a reverse action based on previous actions
 - Implement a collision detector and related routine for collision avoidance
 
