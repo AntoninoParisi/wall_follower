@@ -9,7 +9,7 @@
  * Actions and Conditions.
  */
 
-
+// collision non blocca rewind
 
 const char *xml_tree = R"(
                         <root main_tree_to_execute="Main_Tree">
@@ -23,12 +23,12 @@ const char *xml_tree = R"(
 
                                 <ReactiveFallback name ="Key_Fall"> 
 
-                                  <Sequence name ="Key_Seq">
+                                  <SequenceStar name ="Key_Seq">
                                     <Key_Detector name="Is key detected?"/>
                                     <SubTree ID="Rewind_Subtree"/>
-                                  </Sequence>
+                                  </SequenceStar>
                                   
-                                  <SubTree ID="Wall_Follower_Subtree"/>
+                                  <SubTree ID="Wall_Follow_Subtree"/>
                                   
                                 </ReactiveFallback>
                               
@@ -36,8 +36,8 @@ const char *xml_tree = R"(
                             </BehaviorTree>
 
 
-                            <BehaviorTree ID="Wall_Follower_Subtree">
-                                <Sequence name="Wall_Follower_Seq">
+                            <BehaviorTree ID="Wall_Follow_Subtree">
+                                <Sequence name="Wall_Follow_Seq">
                                   <Find_Wall name="Find wall"/>	
                                   <Side_Choice name="Side choice"/>                              
                                   <Align name="Align"/>
@@ -47,36 +47,26 @@ const char *xml_tree = R"(
                             </BehaviorTree> 
 
                             <BehaviorTree ID="Rewind_Subtree">
-                                <Sequence name ="Rewind_Seq">
-                                  <Turn name="Turn" angle="180" time="10" direction="clockwise"/>
+                                <SequenceStar name ="Rewind_Seq">
+                                  <Set_Save name="Set_Safe" mode="off"/>
+                                  <Turn name="Turn" angle="180" time="2" direction="clockwise"/>
                                   <Rewind name="Rewind"/>
-                                </Sequence> 
+                                  <Set_Save name="Set_Safe" mode="on"/>
+                                </SequenceStar> 
                             </BehaviorTree>
 
                             <BehaviorTree ID="Safety_Subtree">
                               <Sequence name ="Safety_Seq">
-                                <Turn name="Turn" angle="90" time="2" direction="anticlockwise"/>
+                                <Go_Back name="Go_Back" distance="0.5" time="2"/>
                               </Sequence> 
                             </BehaviorTree>
 
                         </root>
                         )";    
 
-
-/*
-<RetryUntilSuccessful num_attempts="999">
-</RetryUntilSuccessful>  
-
-<Repeat num_cycles="1000">
-
-<Parallel success_threshold="1">
-
-*/
-
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
-  //while (rclcpp::ok())
   rclcpp::spin(std::make_shared<Wall_Follower>(xml_tree));
   cout << "Wall Follower Ends" << endl;
   return 0;

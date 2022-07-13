@@ -27,7 +27,7 @@ public:
   bool follow_right;
   vector<float> lidar;
   int lidar_len;
-  float regions[3];
+  float regions[4];
   float dist_th;
   float max_vel;
   
@@ -38,10 +38,16 @@ public:
 
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr subscription_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr publisher_;
-  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr dir_subscription_;
+  rclcpp::TimerBase::SharedPtr timer_control_loop;
+  rclcpp::TimerBase::SharedPtr timer_history;
 
-
-  rclcpp::TimerBase::SharedPtr timer_;
+  int action_counter;
+  chrono::steady_clock::time_point t_start;
+  
+  float history_lin_vel[1000]; 
+  float history_ang_vel[1000]; 
+  float history_times[1000]; 
+  bool saving_on;
 
   Wall_Follower(const char *xml_tree) : rclcpp::Node("Wall_Follower")
   {
@@ -50,8 +56,8 @@ public:
     this->regions[0] = 1.0;
     this->regions[1] = 1.0;
     this->regions[2] = 1.0;
-    this->dist_th = 0.3;
-    this->max_vel = 0.3;
+    this->dist_th = 0.4;
+    this->max_vel = 0.2;
 
     BehaviorTreeFactory factory;
     factory.registerNodeType<Find_Wall>("Find_Wall");
@@ -63,6 +69,8 @@ public:
     factory.registerNodeType<Rewind>("Rewind"); 
     factory.registerNodeType<Collision_Detector>("Collision_Detector"); 
     factory.registerNodeType<Turn>("Turn", {InputPort<string>("angle"), InputPort<string>("time"), InputPort<string>("direction") }); 
+    factory.registerNodeType<Go_Back>("Go_Back", {InputPort<string>("distance"), InputPort<string>("time")});
+    factory.registerNodeType<Set_Save>("Set_Save", {InputPort<string>("mode")}); 
     this->tree = factory.createTreeFromText(xml_tree);
 
     for( auto& node: this->tree.nodes ){
@@ -88,7 +96,7 @@ public:
       }
       if( auto node_ = dynamic_cast<Rewind*>( node.get() ))
       {
-          node_->init(&(this->follow_right), &(this->twist_msg), this->regions, this->max_vel, this->dist_th);
+          node_->init(&(this->twist_msg), this->history_lin_vel, this->history_ang_vel, this->history_times, &(this->action_counter));
       }
       if( auto node_ = dynamic_cast<Collision_Detector*>( node.get() ))
       {
@@ -97,6 +105,14 @@ public:
       if( auto node_ = dynamic_cast<Turn*>( node.get() ))
       {
           node_->init(&(this->twist_msg));
+      }
+      if( auto node_ = dynamic_cast<Go_Back*>( node.get() ))
+      {
+          node_->init(&(this->twist_msg), this->regions, this->dist_th);
+      }
+      if( auto node_ = dynamic_cast<Set_Save*>( node.get() ))
+      {
+          node_->init(&(this->saving_on));
       }
     }
 
@@ -107,7 +123,14 @@ public:
         bind(&Wall_Follower::laser_callback, this, placeholders::_1));
 
     this->twist_msg = geometry_msgs::msg::Twist();
-    this->timer_ = this->create_wall_timer(50ms, std::bind(&Wall_Follower::control_loop, this));
+    this->timer_control_loop = this->create_wall_timer(50ms, std::bind(&Wall_Follower::control_loop, this));
+    this->timer_history = this->create_wall_timer(100ms, std::bind(&Wall_Follower::save_twist_msg, this));
+
+    this->action_counter=0;
+    this->t_start = chrono::steady_clock::now();
+    this->saving_on = true;
+
+    cout << "[ Starting Wall Follower]" << endl;
   }
 
 private:
@@ -125,10 +148,12 @@ private:
     reg_c.insert(reg_c.end(), reg_c2.begin(), reg_c2.end());
     vector<float> reg_l(lidar.begin() + front_dim, lidar.begin() + limit);
     vector<float> reg_r(lidar.end() - limit, lidar.end() - front_dim);
+    vector<float> reg_b(lidar.begin() + limit, lidar.end() - limit);
 
     this->regions[0] = min(*min_element(reg_c.begin(), reg_c.end()), 10.0f);
     this->regions[1] = min(*min_element(reg_r.begin(), reg_r.end()), 10.0f);
     this->regions[2] = min(*min_element(reg_l.begin(), reg_l.end()), 10.0f);
+    this->regions[3] = min(*min_element(reg_b.begin(), reg_b.end()), 10.0f);
 
     //cout << this->regions[2] << " ! " << this->regions[0] << " ! " << this->regions[1] << endl;
   }
@@ -138,8 +163,27 @@ private:
     this->tree.tickRoot();
     publisher_->publish(twist_msg);
 
+    // cout << setprecision(2) << " --- " <<  twist_msg.linear.x << " | " << twist_msg.angular.z << " --- " << endl;
     // cout << "\n--- executeTick() " << tick_c++ << " ---" << endl;
+    // cout << "." << endl;
   }
+
+  void save_twist_msg(){ 
+
+    // Save only new values of velocity and when 'saving' is on
+
+    if(this->saving_on && ((history_lin_vel[action_counter] - this->twist_msg.linear.x)*(history_lin_vel[action_counter] - this->twist_msg.linear.x) > 0.01 || (history_ang_vel[action_counter] - this->twist_msg.angular.z)*(history_ang_vel[action_counter] - this->twist_msg.angular.z) > 0.01)){
+        
+      history_lin_vel[action_counter+1] = this->twist_msg.linear.x; 
+      history_ang_vel[action_counter+1] = this->twist_msg.angular.z;
+      history_times[action_counter] = chrono::duration<float>(chrono::steady_clock::now()- t_start).count();
+      t_start = chrono::steady_clock::now();
+
+      cout << setprecision(2) << "Saving " << action_counter << " :\t" << history_lin_vel[action_counter] << "\t| " << history_ang_vel[action_counter] << "\tx " << history_times[action_counter] << " sec" << endl;
+      action_counter++;
+    }
+  }
+
 };
 
 #endif

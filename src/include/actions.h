@@ -14,17 +14,11 @@
 #include <sys/select.h>
 #include <chrono>
 
+#include <iostream>
+#include <iomanip>
+
 using namespace std;
 using namespace BT;
-
-string action_name;
-float side;
-int action_counter=0;
-chrono::steady_clock::time_point t_start;
-
-string history_actions[1000];  
-float history_times[1000];
-
 
 class Find_Wall : public AsyncActionNode
 {
@@ -50,31 +44,23 @@ public:
   {
     // Go straight until a wall in front region is detected
 
-    cout << "[ Finding a wall ]" << endl;
+    // cout << "[ Finding a wall ]" << endl;
 
-    t_start = chrono::steady_clock::now();
-    
+    float ang_vel = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX)) - 0.5;
+
     while (this->regions[0] > this->dist_th)
     {
       this->twist_msg->linear.x = (this->regions[0] * this->regions[0] < this->max_vel) ? this->regions[0] * this->regions[0] : this->max_vel;
-      this->twist_msg->angular.z = (*(this->follow_right)) ? 0.15 : -0.15;;
+      this->twist_msg->angular.z = ang_vel;
     }
 
     this->twist_msg->linear.x = 0.0;
     this->twist_msg->angular.z = 0.0;
 
-    history_actions[action_counter] = "Find_Wall";
-    history_times[action_counter++] = chrono::duration<float>(chrono::steady_clock::now()- t_start).count();
     return NodeStatus::SUCCESS;
   }
 
-    void halt() override
-    {
-      this->twist_msg->linear.x = 0.0;
-      this->twist_msg->angular.z = 0.0;
-    }
-
-
+  void halt() override{}
 };
 
 class Side_Choice : public AsyncActionNode
@@ -97,12 +83,13 @@ public:
 
     *this->follow_right = (this->regions[1] < this->regions[2]) ? true : false;
     
-    
+    /*
     if (*this->follow_right)
       cout << "[ Follow right ]" << endl; // THE WALL IS ON THE ROBOT RIGHT
     else
       cout << "[ Follow left ]" << endl; // THE WALL IS ON THE ROBOT LEFT
-    
+    */
+
     return NodeStatus::SUCCESS;
   }
 };
@@ -131,27 +118,19 @@ public:
   {
     // Turn, left or right according to the chosen side, until the front region is empty
 
-    cout << "[ Aligning ]" << endl;
-
-    t_start = chrono::steady_clock::now();
+    // cout << "[ Aligning ]" << endl;
     
     while (this->regions[0] < this->dist_th)
     {
-      this->twist_msg->angular.z = (*(this->follow_right)) ? 0.5 : -0.5;
+      this->twist_msg->angular.z = (*(this->follow_right)) ? 0.5 : -0.5;     
     }
-    
+
     this->twist_msg->angular.z = 0.0;
 
-    history_actions[action_counter] = "Align";
-    history_times[action_counter++] = chrono::duration<float>(chrono::steady_clock::now()- t_start).count();
     return NodeStatus::SUCCESS;
   }
 
-  void halt() override
-    {
-      this->twist_msg->linear.x = 0.0;
-      this->twist_msg->angular.z = 0.0;
-    }
+  void halt() override{}  
 };
 
 class Follow_Wall : public AsyncActionNode
@@ -178,31 +157,23 @@ public:
   {
     // Go straight until a wall in the front region is detected or the side to follow region is empty
 
-    cout << "[ Following a wall ]" << endl;
-
-    t_start = chrono::steady_clock::now();
+    // cout << "[ Following a wall ]" << endl;
     
-    side = *(this->follow_right) ? this->regions[1] : this->regions[2];
+    float side = *(this->follow_right) ? this->regions[1] : this->regions[2];
 
     while (side < this->dist_th && this->regions[0] > this->dist_th)
     {
-      this->twist_msg->linear.x = 0.3;
+      this->twist_msg->linear.x = (this->regions[0] * this->regions[0] < this->max_vel) ? this->regions[0] * this->regions[0] : this->max_vel;
 
       side = *(this->follow_right) ? this->regions[1] : this->regions[2];
     }
-
+    
     this->twist_msg->linear.x = 0.0;
 
-    history_actions[action_counter] = "Follow_Wall";
-    history_times[action_counter++] = chrono::duration<float>(chrono::steady_clock::now()- t_start).count();
     return NodeStatus::SUCCESS;
   }
 
-  void halt() override
-    {
-      this->twist_msg->linear.x = 0.0;
-      this->twist_msg->angular.z = 0.0;
-    }
+  void halt() override{}
 };
 
 class Follow_Corner : public AsyncActionNode
@@ -229,9 +200,7 @@ public:
   {
     // Follow a  circle path until a wall appears in the side to follow region (and a wall in the front region is detected)
 
-    cout << "[ Following a corner ]" << endl;
-
-    t_start = chrono::steady_clock::now();
+    // cout << "[ Following a corner ]" << endl;
     
     while (this->regions[0] > this->dist_th )
     {
@@ -242,16 +211,10 @@ public:
     this->twist_msg->linear.x = 0.0;
     this->twist_msg->angular.z = 0.0;
 
-    history_actions[action_counter] = "Follow_Corner";
-    history_times[action_counter++] = chrono::duration<float>(chrono::steady_clock::now()- t_start).count();
     return NodeStatus::SUCCESS;
   }
 
-  void halt() override
-    {
-      this->twist_msg->linear.x = 0.0;
-      this->twist_msg->angular.z = 0.0;
-    }
+  void halt() override{}
 };
 
 class Turn : public AsyncActionNode
@@ -268,114 +231,150 @@ public:
 
   NodeStatus tick() override
   {
-    // Go in circle until a wall appears in the side to follow region (and a wall in the front region is detected)
-
-    cout << "[ Turning ]" << endl;
+    // Do a rotation around z axes for a given angle in a given amount of seconds or until a wall appears in the back region.
  
     int angle = stoi(getInput<string>("angle").value()); 
     float time_ = stof(getInput<string>("time").value()); 
     int direction= (getInput<string>("direction").value() == "clockwise")? -1 : 1;
 
-    while(chrono::duration<float>(chrono::steady_clock::now()- t_start).count() < time_){
+    cout << "[ Starting Turning " << angle << "° ... ]" << endl;
+
+    this->twist_msg->linear.x = 0.0; 
+    this->twist_msg->angular.z = 0.0;
+    chrono::steady_clock::time_point t_start_halt = chrono::steady_clock::now();
+    while(chrono::duration<float>(chrono::steady_clock::now()- t_start_halt).count() < 0.5);
+
+    chrono::steady_clock::time_point t_start_turn = chrono::steady_clock::now();
+    while(chrono::duration<float>(chrono::steady_clock::now()- t_start_turn).count() < time_){
       this->twist_msg->linear.x = 0.0;        
       this->twist_msg->angular.z = direction*(angle*3.14/180)/time_;
     }
+
     this->twist_msg->angular.z = 0.0;
   
     return NodeStatus::SUCCESS;
   }
 
-  void halt() override
-    {
-      this->twist_msg->linear.x = 0.0;
-      this->twist_msg->angular.z = 0.0;
-    }
+  void halt() override{}
 };
 
-class Rewind : public AsyncActionNode
+class Go_Back : public AsyncActionNode
 {
-  bool *follow_right;
   geometry_msgs::msg::Twist *twist_msg;
   float *regions;
-  float max_vel;
   float dist_th;
 
 public:
-  Rewind(const string &name) : AsyncActionNode(name, {}) {}
+  Go_Back(const string &name, const NodeConfiguration& config) : AsyncActionNode(name, config) {}
 
-  void init(bool *follow_right_, geometry_msgs::msg::Twist *twist_msg_, float *regions_, float max_vel_, float dist_th_ )
+  void init(geometry_msgs::msg::Twist *twist_msg_ , float *regions_, float dist_th_)
   {
-    this->follow_right = follow_right_;
     this->twist_msg = twist_msg_;
     this->regions = regions_;
-    this->max_vel = max_vel_;
     this->dist_th = dist_th_;
   }
 
   NodeStatus tick() override
   {
-    //repeat all action in history
+    // Go back along x axis for a given distance in a given amount of seconds or until a wall appears in the back region
+ 
+    float distance_ = stof(getInput<string>("distance").value()); 
+    float time_ = stof(getInput<string>("time").value()); 
 
-    cout << "[ Starting Rewind ... ]" << endl;
+    cout << "[ Starting Go Back " << distance_ << " m ... ]" << endl;
 
-    if(action_counter > 1){
+    this->twist_msg->linear.x = 0.0; 
+    this->twist_msg->angular.z = 0.0;
+    chrono::steady_clock::time_point t_start_halt = chrono::steady_clock::now();
+    while(chrono::duration<float>(chrono::steady_clock::now()- t_start_halt).count() < 0.5);
 
-      *(this->follow_right) = (*(this->follow_right) )? false : true;
-
-      for (int i = action_counter-1; i>0; i--){
-
-        t_start = chrono::steady_clock::now();
-        
-        if (history_actions[i] == "Find_Wall")
-        {
-          Find_Wall node("Find_Wall");
-          node.init(this->follow_right, this->twist_msg, this->regions, this->max_vel, this->dist_th);
-          node.tick();
-        }
-        else if (history_actions[i] == "Side_Choice")
-        {
-          Side_Choice node("Side_Choice");
-          node.init(this->follow_right, this->regions);
-          node.tick();
-        }
-        else if (history_actions[i] == "Align")
-        {
-          Align node("Align");
-          node.init(this->follow_right, this->twist_msg, this->regions, this->max_vel, this->dist_th);
-          node.tick();
-        }
-        else if (history_actions[i] == "Follow_Wall")
-        {
-          Follow_Wall node("Follow_Wall");
-          node.init(this->follow_right, this->twist_msg, this->regions, this->max_vel, this->dist_th);
-          node.tick();
-        }
-        else if (history_actions[i] == "Follow_Corner")
-        {
-          Follow_Corner node("Follow_Corner");
-          node.init(this->follow_right, this->twist_msg, this->regions, this->max_vel, this->dist_th);
-          node.tick();
-        }
-        while(chrono::duration<float>(chrono::steady_clock::now()- t_start).count() < history_times[i]);
-      }
-      
-      *(this->follow_right) = (*(this->follow_right) )? false : true;
-    
-      cout << "[ ... Rewind Complete ]" << endl;
-
-    }
-    else{
-      cout << "[ ERROR: No action stored in history ]" << endl;
+    chrono::steady_clock::time_point t_start_turn = chrono::steady_clock::now();
+    while(chrono::duration<float>(chrono::steady_clock::now()- t_start_turn).count() < time_ && this->regions[3] > this->dist_th*0.5){
+      this->twist_msg->linear.x = - distance_/time_;        
     }
 
-    action_counter = 0;
+    this->twist_msg->linear.x  = 0.0;  
+
+    cout << "[ Ending Go Back " << distance_ << " m ... ]" << endl;
+
     return NodeStatus::SUCCESS;
   }
 
-  void halt() override
+    void halt() override{}
+};
+
+
+class Set_Save : public AsyncActionNode
+{
+  bool *saving_on;
+
+public:
+  Set_Save(const string &name, const NodeConfiguration& config) : AsyncActionNode(name, config) {}
+
+  void init(bool *saving_on_)
+  {
+    this->saving_on = saving_on_;
+  }
+
+  NodeStatus tick() override
+  {
+    // Set the save mode on/off according to the port input 
+
+    *(this->saving_on) = (getInput<string>("mode").value() == "off")? false : true ;
+   
+    return NodeStatus::SUCCESS;
+  }
+};
+
+
+class Rewind : public AsyncActionNode
+{
+  geometry_msgs::msg::Twist *twist_msg;
+  float *history_lin_vel;
+  float *history_ang_vel;
+  float *history_times;
+  int *action_counter;
+
+public:
+  Rewind(const string &name) : AsyncActionNode(name, {}) {}
+
+  void init(geometry_msgs::msg::Twist *twist_msg_, float *history_lin_vel_, float *history_ang_vel_, float *history_times_, int* action_counter_)
+  {
+    this->twist_msg = twist_msg_;
+    this->history_lin_vel = history_lin_vel_;
+    this->history_ang_vel = history_ang_vel_;
+    this->history_times = history_times_;
+    this->action_counter = action_counter_;
+  }
+
+  NodeStatus tick() override
+  {
+    // Repeat all action in history
+
+    // cout << "[ Starting Rewind ... ]" << endl;
+
+
+    for (int i = *(this->action_counter)-1; i > 0; i--){
+      
+      cout << "doing " << i << " :\t"<< this->history_lin_vel[i] << "\t| " << - this->history_ang_vel[i] << "\tx " << this->history_times[i] << " sec" << endl;
+      
+      chrono::steady_clock::time_point t_start_rew = chrono::steady_clock::now();
+      while(chrono::duration<float>(chrono::steady_clock::now()- t_start_rew).count() < this->history_times[i]){
+        this->twist_msg->linear.x = this->history_lin_vel[i];
+        this->twist_msg->angular.z = - this->history_ang_vel[i];
+      }
+    }
+  
+    cout << "[ ... Rewind Complete ]" << endl;
+
+    *(this->action_counter) = 0;
+    
+    return NodeStatus::SUCCESS;
+  }
+
+void halt() override
     {
-      this->twist_msg->linear.x = 0.0;
-      this->twist_msg->angular.z = 0.0;
+      *(this->action_counter) = 0;
     }
 };
 
@@ -397,7 +396,7 @@ public:
 
   NodeStatus tick() override
   {
-    // Return FAILURE if something appear in the frontal region
+    // Return SUCCESS if something appear really close in the frontal region, FAILURE otherwise.
 
     // cout << "Is a collision detected?";
     // cout << " (" << this->regions[0] << " < " << this->dist_th*0.7 << " ?) ";
@@ -405,7 +404,7 @@ public:
     if (this->regions[0] < this->dist_th*0.7)
     {
       // cout << " YES " <<endl;
-      cout << "[ collision detected ]" << endl;
+      cout << "* collision detected *" << endl;
       return NodeStatus::SUCCESS;
     }
     else
@@ -442,7 +441,7 @@ public:
 
   NodeStatus tick() override
   {
-    // Return FAILURE when a key is pressed
+    // Return SUCCESS when a key is pressed, FAILURE otherwise.
 
     // cout << "Is a key detected?";
 
@@ -450,7 +449,7 @@ public:
       clean_stdin();
 
       // cout << " YES " <<endl;
-      cout << "[ keyboard pressed ]" << endl; 
+      cout << "* keyboard pressed *" << endl; 
       return NodeStatus::SUCCESS;
     } 
     else{ 
