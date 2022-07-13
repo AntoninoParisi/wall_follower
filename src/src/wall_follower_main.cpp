@@ -1,3 +1,4 @@
+#pragma once
 #include "actions.h"
 #include "wall_follower.h"
 
