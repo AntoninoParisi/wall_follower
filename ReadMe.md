@@ -4,8 +4,6 @@
 This repository contains the project based on the Behavior tree library (https://www.behaviortree.dev/), the lib version used is V3.7.0.
 
 
----
-
 # Goals
 - Make an high level FSM controller to find a wall, and follow it
 - Implement a reverse action based on previous actions
@@ -18,7 +16,7 @@ This repository contains the project based on the Behavior tree library (https:/
 - BTree\_cpp\_v3
 - rclcpp
 - sensor_msgs
----------------------------------------------------------
+
 
 # Case studies
 Here we report all the cases that are handled by the tree.
@@ -31,7 +29,7 @@ Here we report all the cases that are handled by the tree.
 
 ## Installation
 
-> The most difficult part is make everything compilable, then is way easyer i hope 
+> The most difficult part is make everything compilable, then is way easier i hope 
 > \-cit
 
 
@@ -65,6 +63,6 @@ MIT
 
 # Notes 
 
-**Leave a star if this project ==helped== you! Thanks.**
+**Leave a star if this project _helped_ you! Thanks.**
 
 **You can find the report of this project inside the images folder as documentation of the work done.**
