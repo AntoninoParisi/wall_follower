@@ -46,7 +46,7 @@ public:
 
     // cout << "[ Finding a wall ]" << endl;
 
-    float ang_vel = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX)) - 0.5;
+    float ang_vel = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX*2.0)) - 1.0;
 
     while (this->regions[0] > this->dist_th)
     {
@@ -59,7 +59,6 @@ public:
 
     return NodeStatus::SUCCESS;
   }
-
   void halt() override{}
 };
 
@@ -129,7 +128,6 @@ public:
 
     return NodeStatus::SUCCESS;
   }
-
   void halt() override{}  
 };
 
@@ -172,7 +170,6 @@ public:
 
     return NodeStatus::SUCCESS;
   }
-
   void halt() override{}
 };
 
@@ -213,7 +210,6 @@ public:
 
     return NodeStatus::SUCCESS;
   }
-
   void halt() override{}
 };
 
@@ -239,10 +235,12 @@ public:
 
     cout << "[ Starting Turning " << angle << "° ... ]" << endl;
 
+    /*
     this->twist_msg->linear.x = 0.0; 
     this->twist_msg->angular.z = 0.0;
     chrono::steady_clock::time_point t_start_halt = chrono::steady_clock::now();
     while(chrono::duration<float>(chrono::steady_clock::now()- t_start_halt).count() < 0.5);
+    */
 
     chrono::steady_clock::time_point t_start_turn = chrono::steady_clock::now();
     while(chrono::duration<float>(chrono::steady_clock::now()- t_start_turn).count() < time_){
@@ -254,7 +252,6 @@ public:
   
     return NodeStatus::SUCCESS;
   }
-
   void halt() override{}
 };
 
@@ -283,23 +280,25 @@ public:
 
     cout << "[ Starting Go Back " << distance_ << " m ... ]" << endl;
 
+    /*
     this->twist_msg->linear.x = 0.0; 
     this->twist_msg->angular.z = 0.0;
     chrono::steady_clock::time_point t_start_halt = chrono::steady_clock::now();
     while(chrono::duration<float>(chrono::steady_clock::now()- t_start_halt).count() < 0.5);
-
+    */
+    
     chrono::steady_clock::time_point t_start_turn = chrono::steady_clock::now();
     while(chrono::duration<float>(chrono::steady_clock::now()- t_start_turn).count() < time_ && this->regions[3] > this->dist_th*0.5){
-      this->twist_msg->linear.x = - distance_/time_;        
+      this->twist_msg->linear.x = - distance_/time_;  
+      this->twist_msg->angular.z = 0.0;      
     }
 
     this->twist_msg->linear.x  = 0.0;  
 
-    cout << "[ Ending Go Back " << distance_ << " m ... ]" << endl;
+    //cout << "[ Ending Go Back " << distance_ << " m ... ]" << endl;
 
     return NodeStatus::SUCCESS;
   }
-
     void halt() override{}
 };
 
@@ -384,14 +383,16 @@ class Collision_Detector : public ConditionNode
 {
   float *regions;
   float dist_th;
+  float collision_rate;
 
 public:
   Collision_Detector(const string &name) : ConditionNode(name, {}) {}
 
-  void init(float *regions_, float dist_th_)
+  void init(float *regions_, float dist_th_, float collision_rate_)
   {
     this->regions = regions_;
     this->dist_th = dist_th_;
+    this->collision_rate = collision_rate_;
   }
 
   NodeStatus tick() override
@@ -401,7 +402,7 @@ public:
     // cout << "Is a collision detected?";
     // cout << " (" << this->regions[0] << " < " << this->dist_th*0.7 << " ?) ";
 
-    if (this->regions[0] < this->dist_th*0.7)
+    if (this->regions[0] < this->dist_th * this->collision_rate)
     {
       // cout << " YES " <<endl;
       cout << "* collision detected *" << endl;

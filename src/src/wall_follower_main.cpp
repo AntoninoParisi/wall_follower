@@ -1,4 +1,3 @@
-#pragma once
 #include "actions.h"
 #include "wall_follower.h"
 
@@ -8,8 +7,6 @@
  * to "do" and when. For this reason, our main building blocks are
  * Actions and Conditions.
  */
-
-// collision non blocca rewind
 
 const char *xml_tree = R"(
                         <root main_tree_to_execute="Main_Tree">
@@ -57,7 +54,13 @@ const char *xml_tree = R"(
 
                             <BehaviorTree ID="Safety_Subtree">
                               <Sequence name ="Safety_Seq">
-                                <Go_Back name="Go_Back" distance="0.5" time="2"/>
+                                <Repeat num_cycles="3">
+                                  <Sequence name ="Go_Back_Seq">
+                                    <Go_Back name="Go_Back" distance="0.1" time="2"/> 
+                                    <Collision_Detector name="Is STILL collision detected?"/>
+                                  </Sequence>  
+                                </Repeat>
+                                <Turn name="Turn" angle="90" time="2" direction="clockwise"/>
                               </Sequence> 
                             </BehaviorTree>
 
@@ -66,8 +69,12 @@ const char *xml_tree = R"(
 
 int main(int argc, char * argv[])
 {
+  float dist_th_ = 0.4; 
+  float collision_rate = 0.5;
+  float max_vel = 0.8;
+
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<Wall_Follower>(xml_tree));
+  rclcpp::spin(std::make_shared<Wall_Follower>(xml_tree, dist_th_, max_vel, collision_rate));
   cout << "Wall Follower Ends" << endl;
   return 0;
 }

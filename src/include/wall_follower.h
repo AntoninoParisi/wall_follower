@@ -29,6 +29,7 @@ public:
   int lidar_len;
   float regions[4];
   float dist_th;
+  float collision_rate;
   float max_vel;
   
   Tree tree;
@@ -40,24 +41,26 @@ public:
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr publisher_;
   rclcpp::TimerBase::SharedPtr timer_control_loop;
   rclcpp::TimerBase::SharedPtr timer_history;
-
-  int action_counter;
-  chrono::steady_clock::time_point t_start;
   
   float history_lin_vel[1000]; 
   float history_ang_vel[1000]; 
   float history_times[1000]; 
   bool saving_on;
+  int action_counter;
+  chrono::steady_clock::time_point t_start;
 
-  Wall_Follower(const char *xml_tree) : rclcpp::Node("Wall_Follower")
+  Wall_Follower(const char *xml_tree, float dist_th_, float max_vel_, float collision_rate_) : rclcpp::Node("Wall_Follower")
   {
+    this->dist_th = dist_th_;
+    this->max_vel = max_vel_;
+    this->collision_rate = collision_rate_;
+
     this->follow_right = true;
     this->lidar_len = 0;
     this->regions[0] = 1.0;
     this->regions[1] = 1.0;
     this->regions[2] = 1.0;
-    this->dist_th = 0.4;
-    this->max_vel = 0.2;
+    
 
     BehaviorTreeFactory factory;
     factory.registerNodeType<Find_Wall>("Find_Wall");
@@ -100,7 +103,7 @@ public:
       }
       if( auto node_ = dynamic_cast<Collision_Detector*>( node.get() ))
       {
-          node_->init(this->regions, this->dist_th);
+          node_->init(this->regions, this->dist_th, this->collision_rate);
       }
       if( auto node_ = dynamic_cast<Turn*>( node.get() ))
       {
@@ -124,7 +127,7 @@ public:
 
     this->twist_msg = geometry_msgs::msg::Twist();
     this->timer_control_loop = this->create_wall_timer(50ms, std::bind(&Wall_Follower::control_loop, this));
-    this->timer_history = this->create_wall_timer(100ms, std::bind(&Wall_Follower::save_twist_msg, this));
+    this->timer_history = this->create_wall_timer(50ms, std::bind(&Wall_Follower::save_twist_msg, this));
 
     this->action_counter=0;
     this->t_start = chrono::steady_clock::now();
