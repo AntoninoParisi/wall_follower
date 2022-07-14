@@ -46,7 +46,8 @@ public:
 
     // cout << "[ Finding a wall ]" << endl;
 
-    float ang_vel = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX*2.0)) - 1.0;
+    srand(time(NULL));
+    float ang_vel = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX*this->max_vel*0.6*2)) - this->max_vel*0.6;
 
     while (this->regions[0] > this->dist_th)
     {
