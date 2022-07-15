@@ -16,8 +16,6 @@
 #include <iostream>
 #include <iomanip>
 
-
-
 using namespace std;
 using namespace BT;
 
@@ -48,12 +46,14 @@ public:
     // cout << "[ Finding a wall ]" << endl;
 
     srand(time(NULL));
-    float ang_vel = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX/(this->max_vel*0.4*2))) - this->max_vel*0.4;
+    float vel;
+    float rand_ = static_cast <float> (rand()) ;
 
     while (this->regions[0] > this->dist_th)
     {
-      this->twist_msg->linear.x = (this->regions[0] * this->regions[0] < this->max_vel) ? this->regions[0] * this->regions[0] : this->max_vel;
-      this->twist_msg->angular.z = ang_vel;
+      vel = (this->regions[0] * this->regions[0] < this->max_vel) ? this->regions[0] * this->regions[0] : this->max_vel ;
+      this->twist_msg->linear.x = vel ;
+      this->twist_msg->angular.z = rand_ / (static_cast <float> (RAND_MAX/(vel*0.6*2))) - vel*0.6;
     }
 
     this->twist_msg->linear.x = 0.0;
