@@ -20,12 +20,12 @@ const char *xml_tree = R"(
 
                                 <ReactiveFallback name ="Key_Fall"> 
 
-                                  <SequenceStar name ="Key_Seq">
+                                  <SequenceStar name ="Key_Seq">       
                                     <Key_Detector name="Is key detected?"/>
-                                    <SubTree ID="Rewind_Subtree"/>
+                                    <SubTree ID="Rewind_Subtree"/>  
                                   </SequenceStar>
                                   
-                                  <SubTree ID="Wall_Follow_Subtree"/>
+                                  <SubTree ID="Wall_Follow_Subtree"/>          
                                   
                                 </ReactiveFallback>
                               
@@ -34,13 +34,15 @@ const char *xml_tree = R"(
 
 
                             <BehaviorTree ID="Wall_Follow_Subtree">
-                                <Sequence name="Wall_Follow_Seq">
-                                  <Find_Wall name="Find wall"/>	
-                                  <Side_Choice name="Side choice"/>                              
-                                  <Align name="Align"/>
-                                  <Follow_Wall name="Follow a wall"/> 
-                                  <Follow_Corner name="Follow a corner"/>                               
-                                </Sequence> 
+                                <Repeat num_cycles="1000">
+                                  <Sequence name="Wall_Follow_Seq">
+                                    <Find_Wall name="Find wall"/>	
+                                    <Side_Choice name="Side choice"/>                              
+                                    <Align name="Align"/>
+                                    <Follow_Wall name="Follow a wall"/> 
+                                    <Follow_Corner name="Follow a corner"/>                               
+                                  </Sequence> 
+                                </Repeat>  
                             </BehaviorTree> 
 
                             <BehaviorTree ID="Rewind_Subtree">
@@ -49,7 +51,7 @@ const char *xml_tree = R"(
                                   <Turn name="Turn" angle="180" time="2" direction="clockwise"/>
                                   <Rewind name="Rewind"/>
                                   <Set_Save name="Set_Safe" mode="on"/>
-                                </SequenceStar> 
+                                </SequenceStar>  
                             </BehaviorTree>
 
                             <BehaviorTree ID="Safety_Subtree">
@@ -60,18 +62,19 @@ const char *xml_tree = R"(
                                     <Collision_Detector name="Is STILL collision detected?"/>
                                   </Sequence>  
                                 </Repeat>
-                                <Turn name="Turn" angle="90" time="2" direction="clockwise"/>
+                                <Align name="Align"/>
                               </Sequence> 
                             </BehaviorTree>
 
                         </root>
-                        )";    
+                        )"; 
+
 
 int main(int argc, char * argv[])
 {
   float dist_th_ = 0.4; 
   float collision_rate = 0.5;
-  float max_vel = 0.8;
+  float max_vel = 0.2;
 
   rclcpp::init(argc, argv);
   rclcpp::spin(std::make_shared<Wall_Follower>(xml_tree, dist_th_, max_vel, collision_rate));
