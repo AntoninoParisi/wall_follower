@@ -43,7 +43,7 @@ public:
   {
     // Go straight until a wall in front region is detected
 
-    // cout << "[ Finding a wall ]" << endl;
+    cout << "[ Finding a wall ]" << endl;
 
     srand(time(NULL));
     float vel;
@@ -64,8 +64,6 @@ public:
   void halt() override{
     this->twist_msg->linear.x = 0.0;
     this->twist_msg->angular.z = 0.0;
-    chrono::steady_clock::time_point t_start_halt = chrono::steady_clock::now();
-    while(chrono::duration<float>(chrono::steady_clock::now()- t_start_halt).count() < 1.0);
   }
 };
 
@@ -88,14 +86,12 @@ public:
     /// Set the side to follow according to the closest wall
 
     *this->follow_right = (this->regions[1] < this->regions[2]) ? true : false;
-    
-    
+        
     if (*this->follow_right)
       cout << "[ Follow right ]" << endl; // THE WALL IS ON THE ROBOT RIGHT
     else
       cout << "[ Follow left ]" << endl; // THE WALL IS ON THE ROBOT LEFT
     
-
     return NodeStatus::SUCCESS;
   }
 };
@@ -124,7 +120,7 @@ public:
   {
     // Turn, left or right according to the chosen side, until the front region is empty
 
-    // cout << "[ Aligning ]" << endl;
+    cout << "[ Aligning ]" << endl;
     
     while (this->regions[0] < this->dist_th)
     {
@@ -138,8 +134,6 @@ public:
   void halt() override{
     this->twist_msg->linear.x = 0.0;
     this->twist_msg->angular.z = 0.0;
-    chrono::steady_clock::time_point t_start_halt = chrono::steady_clock::now();
-    while(chrono::duration<float>(chrono::steady_clock::now()- t_start_halt).count() < 1.0);
   }  
 };
 
@@ -167,7 +161,7 @@ public:
   {
     // Go straight until a wall in the front region is detected or the side to follow region is empty
 
-    // cout << "[ Following a wall ]" << endl;
+    cout << "[ Following a wall ]" << endl;
     
     float side = *(this->follow_right) ? this->regions[1] : this->regions[2];
 
@@ -185,8 +179,6 @@ public:
   void halt() override{
     this->twist_msg->linear.x = 0.0;
     this->twist_msg->angular.z = 0.0;
-    chrono::steady_clock::time_point t_start_halt = chrono::steady_clock::now();
-    while(chrono::duration<float>(chrono::steady_clock::now()- t_start_halt).count() < 1.0);
   }
 };
 
@@ -214,7 +206,7 @@ public:
   {
     // Follow a  circle path until a wall appears in the side to follow region (and a wall in the front region is detected)
 
-    // cout << "[ Following a corner ]" << endl;
+    cout << "[ Following a corner ]" << endl;
     
     while (this->regions[0] > this->dist_th )
     {
@@ -230,8 +222,6 @@ public:
   void halt() override{
     this->twist_msg->linear.x = 0.0;
     this->twist_msg->angular.z = 0.0;
-    chrono::steady_clock::time_point t_start_halt = chrono::steady_clock::now();
-    while(chrono::duration<float>(chrono::steady_clock::now()- t_start_halt).count() < 1.0);
   }
 };
 
@@ -257,12 +247,11 @@ public:
 
     cout << "[ Turning " << angle << "° ]" << endl;
 
-    
     this->twist_msg->linear.x = 0.0; 
     this->twist_msg->angular.z = 0.0;
     chrono::steady_clock::time_point t_start_halt = chrono::steady_clock::now();
     while(chrono::duration<float>(chrono::steady_clock::now()- t_start_halt).count() < 1.0);
-    
+
     
     chrono::steady_clock::time_point t_start_turn = chrono::steady_clock::now();
     while(chrono::duration<float>(chrono::steady_clock::now()- t_start_turn).count() < time_){
@@ -304,13 +293,6 @@ public:
     float time_ = stof(getInput<string>("time").value()); 
 
     cout << "[ Starting Go Back " << distance_ << " m ... ]" << endl;
-
-    /*
-    this->twist_msg->linear.x = 0.0; 
-    this->twist_msg->angular.z = 0.0;
-    chrono::steady_clock::time_point t_start_halt = chrono::steady_clock::now();
-    while(chrono::duration<float>(chrono::steady_clock::now()- t_start_halt).count() < 0.5);
-    */
     
     chrono::steady_clock::time_point t_start_turn = chrono::steady_clock::now();
     while(chrono::duration<float>(chrono::steady_clock::now()- t_start_turn).count() < time_ && this->regions[3] > this->dist_th*0.5){
@@ -361,21 +343,19 @@ class Rewind : public AsyncActionNode
   float *history_ang_vel;
   float *history_times;
   int *action_counter;
-  int timer_freq;
   chrono::steady_clock::time_point t_start_turn;
   bool halted;
 
 public:
   Rewind(const string &name) : AsyncActionNode(name, {}) {}
 
-  void init(geometry_msgs::msg::Twist *twist_msg_, float *history_lin_vel_, float *history_ang_vel_, float *history_times_, int* action_counter_, int timer_freq_)
+  void init(geometry_msgs::msg::Twist *twist_msg_, float *history_lin_vel_, float *history_ang_vel_, float *history_times_, int* action_counter_)
   {
     this->twist_msg = twist_msg_;
     this->history_lin_vel = history_lin_vel_;
     this->history_ang_vel = history_ang_vel_;
     this->history_times = history_times_;
     this->action_counter = action_counter_;
-    this->timer_freq = timer_freq_;
     this->halted = false;
   }
 
@@ -387,21 +367,28 @@ public:
 
     for (int i = *(this->action_counter)-1 ; i > 0 && !this->halted ; i--){
       
-      cout << "doing " << i << " :\t"<< this->history_lin_vel[i] << "\t| " << - this->history_ang_vel[i] << "\tx " << this->history_times[i] << " sec" << endl;
+      cout << setprecision(2) << "doing " << i << " :\t"<< this->history_lin_vel[i] << "\t| " << - this->history_ang_vel[i] << "\tx " << this->history_times[i] << " sec" << endl;
       
       // cout << this->history_times[i]*1000/this->timer_freq << " cycles are needed for a frequency of " << this->timer_freq << endl;
 
-      for(int c=0; c < this->history_times[i]*1000/this->timer_freq; c++){
+      chrono::steady_clock::time_point t_start_rew = chrono::steady_clock::now();
+      while(chrono::duration<float>(chrono::steady_clock::now()- t_start_rew).count() < this->history_times[i]){
+        this->twist_msg->linear.x = this->history_lin_vel[i];
+        this->twist_msg->angular.z = - this->history_ang_vel[i];
+      }
+
+      /*
+      // More robust to multi-threading method
+      int timer_freq = 50;
+      for(int c=0; c < this->history_times[i]*1000/timer_freq; c++){
 
         this->twist_msg->linear.x = this->history_lin_vel[i];
         this->twist_msg->angular.z = - this->history_ang_vel[i];
 
         this->t_start_turn = chrono::steady_clock::now();
-        while(chrono::duration<float>(chrono::steady_clock::now()- this->t_start_turn).count()*1000 < this->timer_freq){};
-
-        // cout<< c << endl;
+        while(chrono::duration<float>(chrono::steady_clock::now()- this->t_start_turn).count()*1000 < timer_freq){};
       }
-
+      */
     }
 
     this->twist_msg->linear.x = 0;
@@ -418,7 +405,6 @@ public:
 
     this->halted = false;
     return NodeStatus::SUCCESS;
-
   }
 
 void halt() override

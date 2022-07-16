@@ -41,9 +41,6 @@ public:
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr publisher_;
   rclcpp::TimerBase::SharedPtr timer_control_loop;
   rclcpp::TimerBase::SharedPtr timer_history;
-
-  int controll_loop_timer_freq;
-  int history_timer_freq;
   
   float history_lin_vel[500]; 
   float history_ang_vel[500]; 
@@ -52,7 +49,6 @@ public:
   int action_counter;
   chrono::steady_clock::time_point t_start;
   
-
   Wall_Follower(const char *xml_tree, float dist_th_, float max_vel_, float collision_rate_) : rclcpp::Node("Wall_Follower")
   {
     this->dist_th = dist_th_;
@@ -64,9 +60,6 @@ public:
     this->regions[0] = 1.0;
     this->regions[1] = 1.0;
     this->regions[2] = 1.0;
-
-    this->controll_loop_timer_freq = 50;
-    this->history_timer_freq = 10;
     
     BehaviorTreeFactory factory;
     factory.registerNodeType<Find_Wall>("Find_Wall");
@@ -105,7 +98,7 @@ public:
       }
       if( auto node_ = dynamic_cast<Rewind*>( node.get() ))
       {
-          node_->init(&(this->twist_msg), this->history_lin_vel, this->history_ang_vel, this->history_times, &(this->action_counter), this->controll_loop_timer_freq);
+          node_->init(&(this->twist_msg), this->history_lin_vel, this->history_ang_vel, this->history_times, &(this->action_counter));
       }
       if( auto node_ = dynamic_cast<Collision_Detector*>( node.get() ))
       {
@@ -132,8 +125,8 @@ public:
         bind(&Wall_Follower::laser_callback, this, placeholders::_1));
 
     this->twist_msg = geometry_msgs::msg::Twist();
-    this->timer_control_loop = this->create_wall_timer(chrono::milliseconds(this->controll_loop_timer_freq), std::bind(&Wall_Follower::control_loop, this));
-    this->timer_history = this->create_wall_timer(chrono::milliseconds(this->history_timer_freq), std::bind(&Wall_Follower::save_twist_msg, this));
+    this->timer_control_loop = this->create_wall_timer(50ms, std::bind(&Wall_Follower::control_loop, this));
+    this->timer_history = this->create_wall_timer(25ms, std::bind(&Wall_Follower::save_twist_msg, this));
 
     this->action_counter=0;
     this->t_start = chrono::steady_clock::now();
@@ -182,18 +175,17 @@ private:
     // Save only new values of velocity and when 'saving' is on
 
     if( (this->saving_on && ((history_lin_vel[action_counter] - this->twist_msg.linear.x)*(history_lin_vel[action_counter] - this->twist_msg.linear.x) > 0.01 || (history_ang_vel[action_counter] - this->twist_msg.angular.z)*(history_ang_vel[action_counter] - this->twist_msg.angular.z) > 0.01) ) 
-      && !(this->twist_msg.linear.x == 0 && this->twist_msg.angular.z == 0) ) {
-        
+      && !(this->twist_msg.linear.x == 0 && this->twist_msg.angular.z == 0) ) {   
+
+      //cout << setprecision(2) << "Saving " << action_counter << " :\t" << history_lin_vel[action_counter] << "\t| " << history_ang_vel[action_counter] << "\tx " << history_times[action_counter] << " sec" << endl;  
+      
       history_lin_vel[action_counter+1] = this->twist_msg.linear.x; 
       history_ang_vel[action_counter+1] = this->twist_msg.angular.z;
       history_times[action_counter] = chrono::duration<float>(chrono::steady_clock::now()- t_start).count();
       t_start = chrono::steady_clock::now();
-
-      cout << setprecision(2) << "Saving " << action_counter << " :\t" << history_lin_vel[action_counter] << "\t| " << history_ang_vel[action_counter] << "\tx " << history_times[action_counter] << " sec" << endl;
       action_counter++;
     }
   }
-
 };
 
 #endif
