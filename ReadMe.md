@@ -65,4 +65,4 @@ MIT
 
 **Leave a star if this project _helped_ you! Thanks.**
 
-**You can find the report of this project inside the images folder as documentation of the work done.**
+**You can find the report of this project inside the main directory as documentation of the work done.**

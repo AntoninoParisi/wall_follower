@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<root main_tree_to_execute="BehaviorTree">
+    <!-- ////////// -->
+    <BehaviorTree ID="BehaviorTree">
+        <ReactiveFallback>
+            <Sequence>
+                <Action ID="Collision_Detector"/>
+                <Repeat num_cycles="3">
+                    <Sequence>
+                        <Action ID="go_back"/>
+                        <Action ID="Collision_Detector"/>
+                    </Sequence>
+                </Repeat>
+                <Action ID="side_choice"/>
+                <Action ID="align"/>
+            </Sequence>
+            <ReactiveFallback>
+                <Action ID="key_detector"/>
+                <SequenceStar>
+                    <Action ID="set_save"/>
+                    <Action ID="turn"/>
+                    <Action ID="rewind"/>
+                    <Action ID="set_save"/>
+                </SequenceStar>
+                <Sequence>
+                    <Action ID="find_wall"/>
+                    <Action ID="align"/>
+                    <Action ID="side_choice"/>
+                    <Action ID="follow_wall"/>
+                    <Action ID="side_occupied"/>
+                    <Action ID="follow_corner"/>
+                </Sequence>
+            </ReactiveFallback>
+        </ReactiveFallback>
+    </BehaviorTree>
+    <!-- ////////// -->
+    <TreeNodesModel>
+        <Action ID="Collision_Detector"/>
+        <Action ID="align"/>
+        <Action ID="find_wall"/>
+        <Action ID="follow_corner"/>
+        <Action ID="follow_wall"/>
+        <Action ID="go_back"/>
+        <Action ID="key_detector"/>
+        <Action ID="rewind"/>
+        <Action ID="set_save"/>
+        <Action ID="side_choice"/>
+        <Action ID="side_occupied"/>
+        <Action ID="turn"/>
+    </TreeNodesModel>
+    <!-- ////////// -->
+</root>
+
